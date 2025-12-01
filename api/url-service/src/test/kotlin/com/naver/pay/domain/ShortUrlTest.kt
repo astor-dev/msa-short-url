@@ -1,0 +1,91 @@
+package com.naver.pay.domain
+
+import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.assertThrows
+import java.time.Instant
+
+class ShortUrlTest : BehaviorSpec({
+
+    Given("ShortUrl 생성을 위한 유효한 파라미터가 주어졌을 때") {
+        val shortKey = "testKey"
+        val shortUrl = "https://short.url/testKey"
+        val originalUrl = "https://naver.com/index.html"
+        val ttlSeconds = 3600
+
+        When("of 팩토리 메소드를 호출하면") {
+            val beforeCreation = Instant.now()
+            val shortUrlInstance = ShortUrl.of(
+                shortKey = shortKey,
+                shortUrl = shortUrl,
+                originalUrl = originalUrl,
+                ttlSeconds = ttlSeconds
+            )
+            val afterCreation = Instant.now()
+
+            Then("모든 필드가 정상적으로 초기화된다") {
+                shortUrlInstance.shortKey shouldBe shortKey
+                shortUrlInstance.shortUrl shouldBe shortUrl
+                shortUrlInstance.originalUrl shouldBe originalUrl
+            }
+
+            Then("생성 시각과 만료 시각이 올바르게 설정된다") {
+                shortUrlInstance.createdAt.isAfter(beforeCreation.minusMillis(100)) shouldBe true
+                shortUrlInstance.createdAt.isBefore(afterCreation.plusMillis(100)) shouldBe true
+                shortUrlInstance.expiresAt shouldBe shortUrlInstance.createdAt.plusSeconds(ttlSeconds.toLong())
+            }
+        }
+    }
+
+    Given("ShortUrl 생성을 위한 유효하지 않은 파라미터가 주어졌을 때") {
+        When("shortKey가 비어 있으면") {
+            Then("IllegalArgumentException 예외가 발생한다") {
+                val exception = assertThrows<IllegalArgumentException> {
+                    ShortUrl.of("", "https://short.url/", "https://naver.com", 3600)
+                }
+                exception.message shouldBe "shortKey는 비어 있을 수 없습니다."
+            }
+        }
+
+        When("shortUrl이 비어 있으면") {
+            Then("IllegalArgumentException 예외가 발생한다") {
+                val exception = assertThrows<IllegalArgumentException> {
+                    ShortUrl.of("testKey", "", "https://naver.com", 3600)
+                }
+                exception.message shouldBe "shortUrl는 비어 있을 수 없습니다."
+            }
+        }
+
+        When("originalUrl이 비어 있으면") {
+            Then("IllegalArgumentException 예외가 발생한다") {
+                val exception = assertThrows<IllegalArgumentException> {
+                    ShortUrl.of("testKey", "https://short.url/testKey", "", 3600)
+                }
+                exception.message shouldBe "originalUrl는 비어 있을 수 없습니다."
+            }
+        }
+
+        When("shortUrl의 경로가 shortKey와 다르면") {
+            Then("IllegalArgumentException 예외가 발생한다") {
+                val exception = assertThrows<IllegalArgumentException> {
+                    ShortUrl.of("testKey", "https://short.url/anotherKey", "https://naver.com", 3600)
+                }
+                exception.message shouldBe "shortUrl의 마지막 경로 식별자는 shortKey와 동일해야 합니다."
+            }
+        }
+
+        When("ttlSeconds가 0이거나 음수이면") {
+            Then("IllegalArgumentException 예외가 발생한다") {
+                val exception1 = assertThrows<IllegalArgumentException> {
+                    ShortUrl.of("testKey", "https://short.url/testKey", "https://naver.com", 0)
+                }
+                exception1.message shouldBe "ttlSeconds는 0보다 커야 합니다."
+
+                val exception2 = assertThrows<IllegalArgumentException> {
+                    ShortUrl.of("testKey", "https://short.url/testKey", "https://naver.com", -100)
+                }
+                exception2.message shouldBe "ttlSeconds는 0보다 커야 합니다."
+            }
+        }
+    }
+})
