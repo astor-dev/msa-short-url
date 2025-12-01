@@ -37,6 +37,8 @@ subprojects {
         // --- Spring Boot BOM ---
         implementation(platform("org.springframework.boot:spring-boot-dependencies:3.5.8"))
         annotationProcessor(platform("org.springframework.boot:spring-boot-dependencies:3.5.8"))
+        implementation(platform("org.springframework.cloud:spring-cloud-dependencies:2025.0.0"))
+        annotationProcessor(platform("org.springframework.cloud:spring-cloud-dependencies:2025.0.0"))
 
         // --- Kotlin Core ---
         implementation("org.jetbrains.kotlin:kotlin-stdlib")
