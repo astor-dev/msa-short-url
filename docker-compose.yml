@@ -1,0 +1,31 @@
+services:
+  mysql:
+    image: 'mysql:8.0.44'
+    container_name: mysql
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=externship
+      - MYSQL_DATABASE=naverpay
+      - MYSQL_USER=naverpay
+      - MYSQL_PASSWORD=externship
+    volumes:
+      - ./.data/mysql:/var/lib/mysql
+  mongodb:
+    image: 'mongo:7.0.26'
+    container_name: mongodb
+    ports:
+      - "27018:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=naverpay
+      - MONGO_INITDB_ROOT_PASSWORD=externship
+      - MONGO_INITDB_DATABASE=naverpay
+    volumes:
+      - ./.data/mongodb:/data/db
+  redis:
+    image: 'redis:7.4.7'
+    container_name: redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./.data/redis:/data
