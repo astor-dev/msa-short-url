@@ -9,7 +9,7 @@ subprojects {
             exclude(group = "org.mockito")
         }
         testImplementation("com.ninja-squad:springmockk:4.0.2")
-        testImplementation("io.kotest.extensions:kotest-extensions-spring")
+        testImplementation("io.kotest:kotest-extensions-spring")
         testImplementation("org.springframework.boot:spring-boot-testcontainers")
     }
 }

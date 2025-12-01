@@ -51,9 +51,10 @@ subprojects {
 
         // --- Testing ---
         testImplementation("io.mockk:mockk:1.14.6")
-        testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.5")
-        testImplementation("io.kotest:kotest-assertions-core-jvm:6.0.5")
-        testImplementation("io.kotest:kotest-property-jvm:6.0.5")
+        implementation(platform("io.kotest:kotest-bom:6.0.5"))
+        testImplementation("io.kotest:kotest-runner-junit5-jvm")
+        testImplementation("io.kotest:kotest-assertions-core-jvm")
+        testImplementation("io.kotest:kotest-property-jvm")
         testRuntimeOnly("org.junit.platform:junit-platform-launcher")
         testImplementation("org.testcontainers:junit-jupiter")
     }
