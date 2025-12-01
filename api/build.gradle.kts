@@ -1,0 +1,15 @@
+subprojects {
+    apply(plugin = "org.springframework.boot")
+    apply(plugin = "org.jetbrains.kotlin.plugin.spring")
+
+    dependencies {
+        implementation("org.springframework.boot:spring-boot-starter")
+        testImplementation("org.springframework.boot:spring-boot-starter-test") {
+            exclude(group = "org.junit.vintage")
+            exclude(group = "org.mockito")
+        }
+        testImplementation("com.ninja-squad:springmockk:4.0.2")
+        testImplementation("io.kotest.extensions:kotest-extensions-spring")
+        testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    }
+}
