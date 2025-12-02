@@ -26,6 +26,21 @@ class ShortUrlEntity (
     val updatedAt: Instant,
     val deletedAt: Instant?,
 ) {
+    companion object {
+        fun of(shortUrl: ShortUrl) : ShortUrlEntity {
+            return ShortUrlEntity(
+                id = shortUrl.id,
+                shortKey = shortUrl.shortKey,
+                baseUrl = shortUrl.baseUrl,
+                originalUrl = shortUrl.originalUrl,
+                expiresAt = shortUrl.expiresAt,
+                createdAt = shortUrl.createdAt,
+                updatedAt = Instant.now(),
+                deletedAt = null,
+            )
+        }
+    }
+
     fun toDomain() : ShortUrl {
         if(id == null) {
             throw RuntimeException("id가 null인 entity는 domain으로 변환할 수 없습니다.")

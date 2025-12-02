@@ -13,9 +13,9 @@ class ShortUrlTest : BehaviorSpec({
         val originalUrl = "https://naver.com/index.html"
         val ttlSeconds = 3600
 
-        When("of 팩토리 메소드를 호출하면") {
+        When("generate 팩토리 메소드를 호출하면") {
             val beforeCreation = Instant.now()
-            val shortUrlInstance = ShortUrl.of(
+            val shortUrlInstance = ShortUrl.generate(
                 shortKey = shortKey,
                 baseUrl = baseUrl,
                 originalUrl = originalUrl,
@@ -42,7 +42,7 @@ class ShortUrlTest : BehaviorSpec({
         When("baseUrl이 비어 있으면") {
             Then("IllegalArgumentException 예외가 발생한다") {
                 val exception = assertThrows<IllegalArgumentException> {
-                    ShortUrl.of("testKey", "", "https://naver.com", 3600)
+                    ShortUrl.generate("testKey", "", "https://naver.com", 3600)
                 }
                 exception.message shouldBe "baseUrl 비어 있을 수 없습니다."
             }
@@ -51,7 +51,7 @@ class ShortUrlTest : BehaviorSpec({
         When("originalUrl이 비어 있으면") {
             Then("IllegalArgumentException 예외가 발생한다") {
                 val exception = assertThrows<IllegalArgumentException> {
-                    ShortUrl.of("testKey", "https://short.url", "", 3600)
+                    ShortUrl.generate("testKey", "https://short.url", "", 3600)
                 }
                 exception.message shouldBe "originalUrl는 비어 있을 수 없습니다."
             }
@@ -60,12 +60,12 @@ class ShortUrlTest : BehaviorSpec({
         When("ttlSeconds가 0이거나 음수이면") {
             Then("IllegalArgumentException 예외가 발생한다") {
                 val exception1 = assertThrows<IllegalArgumentException> {
-                    ShortUrl.of("testKey", "https://short.url", "https://naver.com", 0)
+                    ShortUrl.generate("testKey", "https://short.url", "https://naver.com", 0)
                 }
                 exception1.message shouldBe "expiresAt은 createdAt 이후여야 합니다."
 
                 val exception2 = assertThrows<IllegalArgumentException> {
-                    ShortUrl.of("testKey", "https://short.url", "https://naver.com", -100)
+                    ShortUrl.generate("testKey", "https://short.url", "https://naver.com", -100)
                 }
                 exception2.message shouldBe "expiresAt은 createdAt 이후여야 합니다."
             }

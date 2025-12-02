@@ -1,6 +1,7 @@
 package com.naver.pay.shorturl
 
 import java.time.Instant
+import kotlin.io.encoding.Base64
 
 class ShortUrl private constructor(
     val id: Long?,
@@ -11,7 +12,7 @@ class ShortUrl private constructor(
     val expiresAt: Instant,
 ) {
     companion object {
-        fun of(
+        fun generate(
             shortKey: String?,
             baseUrl: String,
             originalUrl: String,
@@ -52,5 +53,18 @@ class ShortUrl private constructor(
         require(baseUrl.isNotBlank()) { "baseUrl 비어 있을 수 없습니다." }
         require(originalUrl.isNotBlank()) { "originalUrl는 비어 있을 수 없습니다." }
         require(expiresAt.isAfter(createdAt)) { "expiresAt은 createdAt 이후여야 합니다." }
+    }
+
+    fun generateShortKeyFromId(): ShortUrl {
+        val shortKey = shortKey?.let { Base64.UrlSafe.encode(it.toByteArray()) }
+            ?: throw IllegalStateException("shortKey가 설정되어 있지 않습니다.")
+        return ShortUrl(
+            id = this.id,
+            shortKey = shortKey,
+            baseUrl = this.baseUrl,
+            originalUrl = this.originalUrl,
+            createdAt = this.createdAt,
+            expiresAt = this.expiresAt,
+        )
     }
 }
