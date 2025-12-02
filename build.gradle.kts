@@ -45,8 +45,13 @@ subprojects {
         // --- Kotlin Core ---
         implementation("org.jetbrains.kotlin:kotlin-stdlib")
         implementation("org.jetbrains.kotlin:kotlin-reflect")
-        implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+
+
+        // --- Object Mapper ---
+        implementation("com.fasterxml.jackson.core:jackson-databind")
+        implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+        implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
         // --- Logging ---
         runtimeOnly("io.github.oshai:kotlin-logging-jvm:7.0.13")
