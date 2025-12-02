@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.assertThrows
 import java.time.Instant
+import kotlin.io.encoding.Base64
 
 class ShortUrlTest : BehaviorSpec({
 
@@ -113,6 +114,49 @@ class ShortUrlTest : BehaviorSpec({
                     ShortUrl.of(1L, "testKey", "https://short.url", "https://naver.com", createdAt, createdAt.minusSeconds(100))
                 }
                 exception2.message shouldBe "expiresAt은 createdAt 이후여야 합니다."
+            }
+        }
+    }
+
+    Given("id가 설정된 ShortUrl 인스턴스가 주어졌을 때") {
+        val id = 12345L
+        val baseUrl = "https://short.url"
+        val originalUrl = "https://naver.com/some/long/url"
+        val createdAt = Instant.now()
+        val expiresAt = createdAt.plusSeconds(3600)
+
+        val shortUrlWithId = ShortUrl.of(id, null, baseUrl, originalUrl, createdAt, expiresAt)
+
+        When("generateShortKeyFromId 메소드를 호출하면") {
+            val updatedShortUrl = shortUrlWithId.generateShortKeyFromId()
+            val expectedShortKey = Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT).encode(id.toString().toByteArray())
+
+            Then("id로부터 생성된 shortKey가 설정된다") {
+                updatedShortUrl.shortKey shouldBe expectedShortKey
+            }
+
+            Then("다른 필드는 변경되지 않는다") {
+                updatedShortUrl.id shouldBe id
+                updatedShortUrl.baseUrl shouldBe baseUrl
+                updatedShortUrl.originalUrl shouldBe originalUrl
+                updatedShortUrl.createdAt shouldBe createdAt
+                updatedShortUrl.expiresAt shouldBe expiresAt
+            }
+        }
+    }
+
+    Given("id가 null인 ShortUrl 인스턴스가 주어졌을 때") {
+        val baseUrl = "https://short.url"
+        val originalUrl = "https://naver.com/some/long/url"
+
+        val shortUrlWithNullId = ShortUrl.generate(null, baseUrl, originalUrl, 3600)
+
+        When("generateShortKeyFromId 메소드를 호출하면") {
+            Then("IllegalStateException 예외가 발생한다") {
+                val exception = assertThrows<IllegalStateException> {
+                    shortUrlWithNullId.generateShortKeyFromId()
+                }
+                exception.message shouldBe "id가 설정되어 있지 않습니다."
             }
         }
     }
