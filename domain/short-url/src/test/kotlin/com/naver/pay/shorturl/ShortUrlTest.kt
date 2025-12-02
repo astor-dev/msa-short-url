@@ -79,12 +79,57 @@ class ShortUrlTest : BehaviorSpec({
                 val exception1 = assertThrows<IllegalArgumentException> {
                     ShortUrl.of("testKey", "https://short.url/testKey", "https://naver.com", 0)
                 }
-                exception1.message shouldBe "ttlSeconds는 0보다 커야 합니다."
+                exception1.message shouldBe "expiresAt은 createdAt 이후여야 합니다."
 
                 val exception2 = assertThrows<IllegalArgumentException> {
                     ShortUrl.of("testKey", "https://short.url/testKey", "https://naver.com", -100)
                 }
-                exception2.message shouldBe "ttlSeconds는 0보다 커야 합니다."
+                exception2.message shouldBe "expiresAt은 createdAt 이후여야 합니다."
+            }
+        }
+    }
+
+    Given("ShortUrl 재구성을 위한 유효한 파라미터가 주어졌을 때") {
+        val id = 1L
+        val shortKey = "testKey"
+        val shortUrl = "https://short.url/testKey"
+        val originalUrl = "https://naver.com/index.html"
+        val createdAt = Instant.now().minusSeconds(3600)
+        val expiresAt = Instant.now().plusSeconds(3600)
+
+        When("of 팩토리 메소드를 호출하면") {
+            val shortUrlInstance = ShortUrl.of(
+                id = id,
+                shortKey = shortKey,
+                shortUrl = shortUrl,
+                originalUrl = originalUrl,
+                createdAt = createdAt,
+                expiresAt = expiresAt
+            )
+
+            Then("모든 필드가 정상적으로 초기화된다") {
+                shortUrlInstance.id shouldBe id
+                shortUrlInstance.shortKey shouldBe shortKey
+                shortUrlInstance.shortUrl shouldBe shortUrl
+                shortUrlInstance.originalUrl shouldBe originalUrl
+                shortUrlInstance.createdAt shouldBe createdAt
+                shortUrlInstance.expiresAt shouldBe expiresAt
+            }
+        }
+
+        When("expiresAt이 createdAt과 동일하거나 이전이면") {
+            val createdAt = Instant.now()
+
+            Then("IllegalArgumentException 예외가 발생한다") {
+                val exception1 = assertThrows<IllegalArgumentException> {
+                    ShortUrl.of(1L, "testKey", "https://short.url/testKey", "https://naver.com", createdAt, createdAt)
+                }
+                exception1.message shouldBe "expiresAt은 createdAt 이후여야 합니다."
+
+                val exception2 = assertThrows<IllegalArgumentException> {
+                    ShortUrl.of(1L, "testKey", "https://short.url/testKey", "https://naver.com", createdAt, createdAt.minusSeconds(100))
+                }
+                exception2.message shouldBe "expiresAt은 createdAt 이후여야 합니다."
             }
         }
     }
