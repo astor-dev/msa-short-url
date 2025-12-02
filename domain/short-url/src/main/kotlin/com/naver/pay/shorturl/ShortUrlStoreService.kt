@@ -23,7 +23,7 @@ class ShortUrlStoreService(
         )
         val savedShortUrl = shortUrlRepository.save(ShortUrlEntity.of(noKeyShortUrl)).toDomain()
         val shortUrlWithKey = savedShortUrl.generateShortKeyFromId()
-        val updatedShortUrlEntity = shortUrlRepository.save(ShortUrlEntity.of(shortUrlWithKey)).toDomain()
-        return updatedShortUrlEntity
+        val updatedShortUrl = shortUrlRepository.save(ShortUrlEntity.of(shortUrlWithKey)).toDomain()
+        return updatedShortUrl
     }
 }

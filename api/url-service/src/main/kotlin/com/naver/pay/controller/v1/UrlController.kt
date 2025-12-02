@@ -15,17 +15,10 @@ class UrlController(
 ) {
     @PostMapping
     fun createShortUrl(@Valid @RequestBody requestDto: UrlRequestDto): ResponseEntity<UrlResponseDto> {
-        val shortUrl = shortUrlService.create(
-            originalUrl = requestDto.originalUrl,
-            ttlSeconds = requestDto.ttlSeconds
-        )
         return ResponseEntity.ok(
-            UrlResponseDto(
-                shortKey = shortUrl.shortKey,
-                shortUrl = "${shortUrl.baseUrl}/${shortUrl.shortKey}",
-                originalUrl = shortUrl.originalUrl,
-                createdAt = shortUrl.createdAt.toString(),
-                expiresAt = shortUrl.expiresAt.toString()
+            shortUrlService.create(
+                originalUrl = requestDto.originalUrl,
+                ttlSeconds = requestDto.ttlSeconds
             )
         )
     }

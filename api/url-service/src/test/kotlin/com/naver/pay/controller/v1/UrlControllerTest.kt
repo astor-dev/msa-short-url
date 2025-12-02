@@ -2,7 +2,6 @@ package com.naver.pay.controller.v1
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.naver.pay.service.ShortUrlService
-import com.naver.pay.shorturl.ShortUrl
 import com.ninjasquad.springmockk.MockkBean
 import io.kotest.core.extensions.ApplyExtension
 import io.kotest.core.spec.style.BehaviorSpec
@@ -29,13 +28,14 @@ class UrlControllerTest: BehaviorSpec() {
                 val originalUrl = "https://naver.com"
                 val ttlSeconds = 60
                 val requestDto = UrlRequestDto(originalUrl = originalUrl, ttlSeconds = ttlSeconds)
-                val shortUrl = ShortUrl.of(
+                val urlResponseDto = UrlResponseDto(
                     shortKey = "testKey",
-                    baseUrl = "http://localhost",
+                    shortUrl = "http://localhost/testKey",
                     originalUrl = originalUrl,
-                    ttlSeconds = ttlSeconds,
+                    createdAt = "2025-01-01T00:00:00Z", // Dummy value
+                    expiresAt = "2025-01-01T00:00:00Z" // Dummy value
                 )
-                every { shortUrlService.create(originalUrl, ttlSeconds) } returns shortUrl
+                every { shortUrlService.create(originalUrl, ttlSeconds) } returns urlResponseDto
 
                 val result = mockMvc.post("/v1/urls") {
                     contentType = MediaType.APPLICATION_JSON
