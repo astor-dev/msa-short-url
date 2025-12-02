@@ -4,7 +4,7 @@ import java.time.Instant
 
 class ShortUrl private constructor(
     val id: Long?,
-    val shortKey: String,
+    val shortKey: String?,
     val baseUrl: String,
     val originalUrl: String,
     val createdAt: Instant = Instant.now(),
@@ -12,7 +12,7 @@ class ShortUrl private constructor(
 ) {
     companion object {
         fun of(
-            shortKey: String,
+            shortKey: String?,
             baseUrl: String,
             originalUrl: String,
             ttlSeconds: Int,
@@ -31,7 +31,7 @@ class ShortUrl private constructor(
 
         fun of(
             id: Long,
-            shortKey: String,
+            shortKey: String?,
             baseUrl: String,
             originalUrl: String,
             createdAt: Instant,
@@ -49,7 +49,6 @@ class ShortUrl private constructor(
     }
 
     init {
-        require(shortKey.isNotBlank()) { "shortKey는 비어 있을 수 없습니다." }
         require(baseUrl.isNotBlank()) { "baseUrl 비어 있을 수 없습니다." }
         require(originalUrl.isNotBlank()) { "originalUrl는 비어 있을 수 없습니다." }
         require(expiresAt.isAfter(createdAt)) { "expiresAt은 createdAt 이후여야 합니다." }

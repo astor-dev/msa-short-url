@@ -38,14 +38,6 @@ class ShortUrlTest : BehaviorSpec({
     }
 
     Given("ShortUrl 생성을 위한 유효하지 않은 파라미터가 주어졌을 때") {
-        When("shortKey가 비어 있으면") {
-            Then("IllegalArgumentException 예외가 발생한다") {
-                val exception = assertThrows<IllegalArgumentException> {
-                    ShortUrl.of("", "https://short.url", "https://naver.com", 3600)
-                }
-                exception.message shouldBe "shortKey는 비어 있을 수 없습니다."
-            }
-        }
 
         When("baseUrl이 비어 있으면") {
             Then("IllegalArgumentException 예외가 발생한다") {
