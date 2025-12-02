@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("java")
+    id("java-library")
     id("org.springframework.boot") version "3.5.8" apply false
     kotlin("jvm") version "2.2.10" apply false
     kotlin("plugin.spring") version "2.2.10" apply false
