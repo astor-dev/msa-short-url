@@ -1,23 +1,30 @@
 package com.naver.pay.config
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.naver.pay.shorturl.ShortUrl
+import org.springframework.cache.CacheManager
 import org.springframework.cache.annotation.EnableCaching
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.cache.RedisCacheConfiguration
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer
+import org.springframework.data.redis.cache.RedisCacheManager
+import org.springframework.data.redis.connection.RedisConnectionFactory
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer
 import org.springframework.data.redis.serializer.RedisSerializationContext
+import org.springframework.data.redis.serializer.StringRedisSerializer
+import java.time.Duration
+
 
 @Configuration
 @EnableCaching
 class CacheConfig {
     @Bean
-    fun redisCacheConfiguration(objectMapper: ObjectMapper): RedisCacheConfiguration {
-        val jacksonSerializer = Jackson2JsonRedisSerializer(objectMapper, ShortUrl::class.java)
-        return RedisCacheConfiguration.defaultCacheConfig()
-            .serializeValuesWith(
-                RedisSerializationContext.SerializationPair.fromSerializer(jacksonSerializer)
-            )
+    fun cacheManager(redisConnectionFactory: RedisConnectionFactory): CacheManager {
+        val cacheConfig: RedisCacheConfiguration = RedisCacheConfiguration.defaultCacheConfig()
+            .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(StringRedisSerializer()))
+            .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(GenericJackson2JsonRedisSerializer()))
+            .entryTtl(Duration.ofMinutes(10))
+
+        return RedisCacheManager.builder(redisConnectionFactory)
+            .cacheDefaults(cacheConfig)
+            .build()
     }
 }

@@ -2,10 +2,6 @@ server:
   port: 8081
 
 spring:
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
-      write-date-timestamps-as-nanoseconds: false
   datasource:
     url: jdbc:mysql://localhost:3307/naverpay?serverTimezone=Asia/Seoul
     username: naverpay
