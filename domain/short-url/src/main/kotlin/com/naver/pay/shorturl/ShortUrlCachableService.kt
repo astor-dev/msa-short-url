@@ -7,7 +7,6 @@ import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.util.concurrent.ThreadLocalRandom
-import kotlin.jvm.java
 
 @Service
 class ShortUrlCachableService(
@@ -35,7 +34,7 @@ class ShortUrlCachableService(
         val shortUrl = shortUrlRepository.findByShortKey(shortKey)
             .map { it.toDomain() }
             .orElseThrow { NoSuchElementException("Short URL not found: $shortKey") }
-        val ttl = calculateDynamicTtl(shortUrl)
+        val ttl = calculateDynamicTtl()
         val jsonString = objectMapper.writeValueAsString(shortUrl)
         redisTemplate.opsForValue().set(cacheKey, jsonString, ttl)
         return shortUrl
@@ -58,7 +57,7 @@ class ShortUrlCachableService(
     /**
      * 기본 TTL(1일) + Jitter(0~60분) 적용
      */
-    private fun calculateDynamicTtl(shortUrl: ShortUrl): Duration {
+    private fun calculateDynamicTtl(): Duration {
         val ttlSeconds = 86400L // 기본 1일 (24시간)
         val jitterRangeSeconds = 3600L // Jitter 범위 1시간
         val jitter = ThreadLocalRandom.current().nextLong(jitterRangeSeconds)

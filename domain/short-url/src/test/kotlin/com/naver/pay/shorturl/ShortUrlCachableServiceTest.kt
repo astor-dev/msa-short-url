@@ -4,18 +4,18 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.naver.pay.shorturl.infrastructure.jpa.ShortUrlEntity
 import com.naver.pay.shorturl.infrastructure.jpa.ShortUrlRepository
 import io.kotest.core.spec.style.BehaviorSpec
-import io.kotest.matchers.shouldBe
 import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.ValueOperations
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.*
-import org.springframework.data.redis.core.RedisTemplate
 
 class ShortUrlCachableServiceTest : BehaviorSpec({
 
