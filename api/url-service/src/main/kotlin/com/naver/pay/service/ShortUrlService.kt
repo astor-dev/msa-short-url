@@ -6,14 +6,13 @@ import org.springframework.stereotype.Service
 
 @Service
 class ShortUrlService {
-    final val BASE_URL = "https://short.naver.com/"
+    final val BASE_URL = "https://short.naver.com"
 
     fun create(originalUrl: String, ttlSeconds: Int): ShortUrl {
         val shortKey =  generateShortKey(originalUrl)
-        val shortUrl = BASE_URL + shortKey
         return ShortUrl.of(
             shortKey = shortKey,
-            shortUrl = shortUrl,
+            baseUrl = BASE_URL,
             originalUrl = originalUrl,
             ttlSeconds = ttlSeconds
         )

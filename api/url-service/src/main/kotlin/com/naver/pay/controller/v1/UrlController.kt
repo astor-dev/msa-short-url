@@ -22,7 +22,7 @@ class UrlController(
         return ResponseEntity.ok(
             UrlResponseDto(
                 shortKey = shortUrl.shortKey,
-                shortUrl = shortUrl.shortUrl,
+                shortUrl = "${shortUrl.baseUrl}/${shortUrl.shortKey}",
                 originalUrl = shortUrl.originalUrl,
                 createdAt = shortUrl.createdAt.toString(),
                 expiresAt = shortUrl.expiresAt.toString()

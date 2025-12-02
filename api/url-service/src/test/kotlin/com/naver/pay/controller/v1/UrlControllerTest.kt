@@ -30,9 +30,9 @@ class UrlControllerTest: BehaviorSpec() {
                 val ttlSeconds = 60
                 val requestDto = UrlRequestDto(originalUrl = originalUrl, ttlSeconds = ttlSeconds)
                 val shortUrl = ShortUrl.of(
-                    originalUrl = originalUrl,
                     shortKey = "testKey",
-                    shortUrl = "http://localhost/testKey",
+                    baseUrl = "http://localhost",
+                    originalUrl = originalUrl,
                     ttlSeconds = ttlSeconds,
                 )
                 every { shortUrlService.create(originalUrl, ttlSeconds) } returns shortUrl

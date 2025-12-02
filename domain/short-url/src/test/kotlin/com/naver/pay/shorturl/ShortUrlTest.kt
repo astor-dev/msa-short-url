@@ -9,7 +9,7 @@ class ShortUrlTest : BehaviorSpec({
 
     Given("ShortUrl 생성을 위한 유효한 파라미터가 주어졌을 때") {
         val shortKey = "testKey"
-        val shortUrl = "https://short.url/testKey"
+        val baseUrl = "https://short.url"
         val originalUrl = "https://naver.com/index.html"
         val ttlSeconds = 3600
 
@@ -17,7 +17,7 @@ class ShortUrlTest : BehaviorSpec({
             val beforeCreation = Instant.now()
             val shortUrlInstance = ShortUrl.of(
                 shortKey = shortKey,
-                shortUrl = shortUrl,
+                baseUrl = baseUrl,
                 originalUrl = originalUrl,
                 ttlSeconds = ttlSeconds
             )
@@ -25,7 +25,7 @@ class ShortUrlTest : BehaviorSpec({
 
             Then("모든 필드가 정상적으로 초기화된다") {
                 shortUrlInstance.shortKey shouldBe shortKey
-                shortUrlInstance.shortUrl shouldBe shortUrl
+                shortUrlInstance.baseUrl shouldBe baseUrl
                 shortUrlInstance.originalUrl shouldBe originalUrl
             }
 
@@ -41,48 +41,39 @@ class ShortUrlTest : BehaviorSpec({
         When("shortKey가 비어 있으면") {
             Then("IllegalArgumentException 예외가 발생한다") {
                 val exception = assertThrows<IllegalArgumentException> {
-                    ShortUrl.of("", "https://short.url/", "https://naver.com", 3600)
+                    ShortUrl.of("", "https://short.url", "https://naver.com", 3600)
                 }
                 exception.message shouldBe "shortKey는 비어 있을 수 없습니다."
             }
         }
 
-        When("shortUrl이 비어 있으면") {
+        When("baseUrl이 비어 있으면") {
             Then("IllegalArgumentException 예외가 발생한다") {
                 val exception = assertThrows<IllegalArgumentException> {
                     ShortUrl.of("testKey", "", "https://naver.com", 3600)
                 }
-                exception.message shouldBe "shortUrl는 비어 있을 수 없습니다."
+                exception.message shouldBe "baseUrl 비어 있을 수 없습니다."
             }
         }
 
         When("originalUrl이 비어 있으면") {
             Then("IllegalArgumentException 예외가 발생한다") {
                 val exception = assertThrows<IllegalArgumentException> {
-                    ShortUrl.of("testKey", "https://short.url/testKey", "", 3600)
+                    ShortUrl.of("testKey", "https://short.url", "", 3600)
                 }
                 exception.message shouldBe "originalUrl는 비어 있을 수 없습니다."
-            }
-        }
-
-        When("shortUrl의 경로가 shortKey와 다르면") {
-            Then("IllegalArgumentException 예외가 발생한다") {
-                val exception = assertThrows<IllegalArgumentException> {
-                    ShortUrl.of("testKey", "https://short.url/anotherKey", "https://naver.com", 3600)
-                }
-                exception.message shouldBe "shortUrl의 마지막 경로 식별자는 shortKey와 동일해야 합니다."
             }
         }
 
         When("ttlSeconds가 0이거나 음수이면") {
             Then("IllegalArgumentException 예외가 발생한다") {
                 val exception1 = assertThrows<IllegalArgumentException> {
-                    ShortUrl.of("testKey", "https://short.url/testKey", "https://naver.com", 0)
+                    ShortUrl.of("testKey", "https://short.url", "https://naver.com", 0)
                 }
                 exception1.message shouldBe "expiresAt은 createdAt 이후여야 합니다."
 
                 val exception2 = assertThrows<IllegalArgumentException> {
-                    ShortUrl.of("testKey", "https://short.url/testKey", "https://naver.com", -100)
+                    ShortUrl.of("testKey", "https://short.url", "https://naver.com", -100)
                 }
                 exception2.message shouldBe "expiresAt은 createdAt 이후여야 합니다."
             }
@@ -92,7 +83,7 @@ class ShortUrlTest : BehaviorSpec({
     Given("ShortUrl 재구성을 위한 유효한 파라미터가 주어졌을 때") {
         val id = 1L
         val shortKey = "testKey"
-        val shortUrl = "https://short.url/testKey"
+        val baseUrl = "https://short.url"
         val originalUrl = "https://naver.com/index.html"
         val createdAt = Instant.now().minusSeconds(3600)
         val expiresAt = Instant.now().plusSeconds(3600)
@@ -101,7 +92,7 @@ class ShortUrlTest : BehaviorSpec({
             val shortUrlInstance = ShortUrl.of(
                 id = id,
                 shortKey = shortKey,
-                shortUrl = shortUrl,
+                baseUrl = baseUrl,
                 originalUrl = originalUrl,
                 createdAt = createdAt,
                 expiresAt = expiresAt
@@ -110,7 +101,7 @@ class ShortUrlTest : BehaviorSpec({
             Then("모든 필드가 정상적으로 초기화된다") {
                 shortUrlInstance.id shouldBe id
                 shortUrlInstance.shortKey shouldBe shortKey
-                shortUrlInstance.shortUrl shouldBe shortUrl
+                shortUrlInstance.baseUrl shouldBe baseUrl
                 shortUrlInstance.originalUrl shouldBe originalUrl
                 shortUrlInstance.createdAt shouldBe createdAt
                 shortUrlInstance.expiresAt shouldBe expiresAt
@@ -122,12 +113,12 @@ class ShortUrlTest : BehaviorSpec({
 
             Then("IllegalArgumentException 예외가 발생한다") {
                 val exception1 = assertThrows<IllegalArgumentException> {
-                    ShortUrl.of(1L, "testKey", "https://short.url/testKey", "https://naver.com", createdAt, createdAt)
+                    ShortUrl.of(1L, "testKey", "https://short.url", "https://naver.com", createdAt, createdAt)
                 }
                 exception1.message shouldBe "expiresAt은 createdAt 이후여야 합니다."
 
                 val exception2 = assertThrows<IllegalArgumentException> {
-                    ShortUrl.of(1L, "testKey", "https://short.url/testKey", "https://naver.com", createdAt, createdAt.minusSeconds(100))
+                    ShortUrl.of(1L, "testKey", "https://short.url", "https://naver.com", createdAt, createdAt.minusSeconds(100))
                 }
                 exception2.message shouldBe "expiresAt은 createdAt 이후여야 합니다."
             }
