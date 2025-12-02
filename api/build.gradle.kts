@@ -3,6 +3,7 @@ subprojects {
     apply(plugin = "org.jetbrains.kotlin.plugin.spring")
 
     dependencies {
+        implementation(project(":util"))
         implementation("org.springframework.boot:spring-boot-starter")
         testImplementation("org.springframework.boot:spring-boot-starter-test") {
             exclude(group = "org.junit.vintage")
