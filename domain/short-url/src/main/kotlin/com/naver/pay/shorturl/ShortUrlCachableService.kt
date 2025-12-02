@@ -11,14 +11,16 @@ class ShortUrlCachableService(
 ) {
 
     @Cacheable(cacheNames = ["shortUrlByShortKey"], key = "#shortKey")
-    fun findShortUrlByShortKeyOrThrow(shortKey: String): ShortUrlEntity {
+    fun findShortUrlByShortKeyOrThrow(shortKey: String): ShortUrl {
         return shortUrlRepository.findByShortKey(shortKey)
+            .map { it.toDomain() }
             .orElseThrow { NoSuchElementException("Short URL not found for short key: $shortKey") }
     }
 
     @Cacheable(cacheNames = ["shortUrlByOriginalUrl"], key = "#originalUrl")
-    fun findShortUrlByOriginalUrlOrThrow(originalUrl: String): ShortUrlEntity {
+    fun findShortUrlByOriginalUrlOrThrow(originalUrl: String): ShortUrl {
         return shortUrlRepository.findByOriginalUrl(originalUrl)
+            .map { it.toDomain() }
             .orElseThrow { NoSuchElementException("Short URL not found for original URL: $originalUrl") }
     }
 }

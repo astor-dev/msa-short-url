@@ -56,8 +56,8 @@ class ShortUrl private constructor(
     }
 
     fun generateShortKeyFromId(): ShortUrl {
-        val shortKey = shortKey?.let { Base64.UrlSafe.encode(it.toByteArray()) }
-            ?: throw IllegalStateException("shortKey가 설정되어 있지 않습니다.")
+        val shortKey = id?.let { Base64.UrlSafe.encode(it.toString().toByteArray()) }
+            ?: throw IllegalStateException("id가 설정되어 있지 않습니다.")
         return ShortUrl(
             id = this.id,
             shortKey = shortKey,

@@ -15,16 +15,16 @@ import java.time.Instant
 class ShortUrlEntity (
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long?,
-    val shortKey: String?,
-    val baseUrl: String,
-    val originalUrl: String,
-    val expiresAt: Instant,
+    val id: Long? = null,
+    var shortKey: String? = null,
+    var baseUrl: String,
+    var originalUrl: String,
+    var expiresAt: Instant,
     @CreationTimestamp
-    val createdAt: Instant,
+    var createdAt: Instant,
     @UpdateTimestamp
-    val updatedAt: Instant,
-    val deletedAt: Instant?,
+    var updatedAt: Instant,
+    var deletedAt: Instant? = null,
 ) {
     companion object {
         fun of(shortUrl: ShortUrl) : ShortUrlEntity {
@@ -42,16 +42,15 @@ class ShortUrlEntity (
     }
 
     fun toDomain() : ShortUrl {
-        if(id == null) {
-            throw RuntimeException("id가 null인 entity는 domain으로 변환할 수 없습니다.")
-        }
-        return ShortUrl.of(
-            id = this.id,
-            shortKey = this.shortKey,
-            baseUrl = this.baseUrl,
-            originalUrl = this.originalUrl,
-            createdAt = this.createdAt,
-            expiresAt = this.expiresAt,
-        )
+        return id?.let {
+            ShortUrl.of(
+                id = this.id,
+                shortKey = this.shortKey,
+                baseUrl = this.baseUrl,
+                originalUrl = this.originalUrl,
+                createdAt = this.createdAt,
+                expiresAt = this.expiresAt,
+            )
+        } ?: throw RuntimeException("id가 null인 entity는 domain으로 변환할 수 없습니다.")
     }
 }

@@ -5,6 +5,7 @@ plugins {
     id("org.springframework.boot") version "3.5.8" apply false
     kotlin("jvm") version "2.2.10" apply false
     kotlin("plugin.spring") version "2.2.10" apply false
+    kotlin("plugin.jpa") version "2.2.10" apply false
 }
 
 group = "com.naver.pay"
