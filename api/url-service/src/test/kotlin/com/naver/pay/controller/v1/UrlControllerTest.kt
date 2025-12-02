@@ -1,8 +1,8 @@
 package com.naver.pay.controller.v1
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.naver.pay.domain.ShortUrl
 import com.naver.pay.service.ShortUrlService
+import com.naver.pay.shorturl.ShortUrl
 import com.ninjasquad.springmockk.MockkBean
 import io.kotest.core.extensions.ApplyExtension
 import io.kotest.core.spec.style.BehaviorSpec

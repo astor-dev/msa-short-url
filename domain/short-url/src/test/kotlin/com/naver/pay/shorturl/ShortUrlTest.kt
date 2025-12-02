@@ -1,4 +1,4 @@
-package com.naver.pay.domain
+package com.naver.pay.shorturl
 
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe

@@ -1,6 +1,6 @@
 package com.naver.pay.service
 
-import com.naver.pay.domain.ShortUrl
+import com.naver.pay.shorturl.ShortUrl
 import org.springframework.stereotype.Service
 
 
