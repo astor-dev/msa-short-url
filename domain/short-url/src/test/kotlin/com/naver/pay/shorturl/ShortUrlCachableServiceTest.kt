@@ -61,21 +61,21 @@ class ShortUrlCachableServiceTest : BehaviorSpec({
 
         When("findShortUrlByShortKeyOrThrow 호출 시") {
             And("캐시에 ShortUrl이 존재하는 경우") {
-                every { valueOperations.get("shortUrlByShortKey:$shortKey") } returns shortUrlJson
+                every { valueOperations.get("${CacheNames.SHORT_URL_BY_SHORT_KEY}::$shortKey") } returns shortUrlJson
                 every { objectMapper.readValue(shortUrlJson, ShortUrl::class.java) } returns shortUrlDomain
 
                 val result = shortUrlCachableService.findShortUrlByShortKeyOrThrow(shortKey)
 
                 Then("캐시된 ShortUrl을 반환해야 한다") {
                     result.id shouldBe shortUrlDomain.id
-                    verify(exactly = 1) { valueOperations.get("shortUrlByShortKey:$shortKey") }
+                    verify(exactly = 1) { valueOperations.get("${CacheNames.SHORT_URL_BY_SHORT_KEY}::$shortKey") }
                     verify(exactly = 0) { shortUrlRepository.findByShortKey(any()) }
                     verify(exactly = 0) { valueOperations.set(any(), any(), any<java.time.Duration>()) }
                 }
             }
 
             And("캐시에 ShortUrl이 존재하지 않고, DB에 존재하는 경우") {
-                every { valueOperations.get("shortUrlByShortKey:$shortKey") } returns null
+                every { valueOperations.get("${CacheNames.SHORT_URL_BY_SHORT_KEY}::$shortKey") } returns null
                 every { shortUrlRepository.findByShortKey(shortKey) } returns Optional.of(shortUrlEntity)
                 every { objectMapper.writeValueAsString(any<ShortUrl>()) } returns shortUrlJson
                 every { valueOperations.set(any(), any(), any<java.time.Duration>()) } returns Unit
@@ -84,7 +84,7 @@ class ShortUrlCachableServiceTest : BehaviorSpec({
 
                 Then("DB에서 조회 후 캐시에 저장하고 ShortUrl을 반환해야 한다") {
                     result.id shouldBe shortUrlDomain.id
-                    verify(exactly = 1) { valueOperations.get("shortUrlByShortKey:$shortKey") }
+                    verify(exactly = 1) { valueOperations.get("${CacheNames.SHORT_URL_BY_SHORT_KEY}::$shortKey") }
                     verify(exactly = 1) { shortUrlRepository.findByShortKey(shortKey) }
                     verify(exactly = 1) { objectMapper.writeValueAsString(any<ShortUrl>()) }
                     verify(exactly = 1) { valueOperations.set(any(), any(), any<java.time.Duration>()) }
@@ -92,7 +92,7 @@ class ShortUrlCachableServiceTest : BehaviorSpec({
             }
 
             And("캐시에도 DB에도 ShortUrl이 존재하지 않는 경우") {
-                every { valueOperations.get("shortUrlByShortKey:$shortKey") } returns null
+                every { valueOperations.get("${CacheNames.SHORT_URL_BY_SHORT_KEY}::$shortKey") } returns null
                 every { shortUrlRepository.findByShortKey(shortKey) } returns Optional.empty()
 
                 Then("NoSuchElementException을 발생시켜야 한다") {
@@ -103,7 +103,7 @@ class ShortUrlCachableServiceTest : BehaviorSpec({
                     exception.shouldNotBeNull()
                     val noSuchElementException = exception as NoSuchElementException
                     noSuchElementException.message shouldContain "Short URL not found: $shortKey"
-                    verify(exactly = 1) { valueOperations.get("shortUrlByShortKey:$shortKey") }
+                    verify(exactly = 1) { valueOperations.get("${CacheNames.SHORT_URL_BY_SHORT_KEY}::$shortKey") }
                     verify(exactly = 1) { shortUrlRepository.findByShortKey(shortKey) }
                     verify(exactly = 0) { valueOperations.set(any(), any(), any<java.time.Duration>()) }
                 }

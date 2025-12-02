@@ -23,7 +23,7 @@ class ShortUrlCachableService(
      * @return ShortUrl 조회된 ShortUrl 도메인 객체
      */
     fun findShortUrlByShortKeyOrThrow(shortKey: String): ShortUrl {
-        val cacheKey = "shortUrlByShortKey:$shortKey"
+        val cacheKey = "${CacheNames.SHORT_URL_BY_SHORT_KEY}::$shortKey"
         val cachedValue = redisTemplate.opsForValue().get(cacheKey)
         val cachedShortUrl = runCatching {
             objectMapper.readValue(cachedValue, ShortUrl::class.java)
@@ -47,7 +47,7 @@ class ShortUrlCachableService(
      * @throws NoSuchElementException 해당 originalUrl이 존재하지 않을 경우
      * @return ShortUrl 조회된 ShortUrl 도메인 객체
      */
-    @Cacheable(cacheNames = ["shortUrlByOriginalUrl"], key = "#originalUrl")
+    @Cacheable(cacheNames = [CacheNames.SHORT_URL_BY_ORIGINAL], key = "#originalUrl")
     fun findShortUrlByOriginalUrlOrThrow(originalUrl: String): ShortUrl {
         return shortUrlRepository.findByOriginalUrl(originalUrl)
             .map { it.toDomain() }
