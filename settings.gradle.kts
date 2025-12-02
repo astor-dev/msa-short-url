@@ -7,5 +7,6 @@ include("api:redirect-service")
 
 include("domain")
 include("domain:short-url")
+include("domain:outbox")
 
 include("util")
