@@ -23,4 +23,34 @@ class GlobalExceptionHandler {
             HttpStatus.NOT_FOUND
         )
     }
+
+    @ExceptionHandler(IllegalArgumentException::class)
+    @ResponseStatus(HttpStatus.GONE)
+    fun handleIllegalArgumentException(e: IllegalArgumentException, request: WebRequest): ResponseEntity<ErrorResponse> {
+        return ResponseEntity(
+            ErrorResponse(
+                timestamp = System.currentTimeMillis().toString(),
+                status = HttpStatus.GONE,
+                error = e.javaClass.simpleName,
+                message = e.message ?: "The requested resource is no longer available.",
+                path = request.getDescription(false).substringAfter("uri=")
+            ),
+            HttpStatus.GONE
+        )
+    }
+
+    @ExceptionHandler(Exception::class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    fun handleGenericException(e: Exception, request: WebRequest): ResponseEntity<ErrorResponse> {
+        return ResponseEntity(
+            ErrorResponse(
+                timestamp = System.currentTimeMillis().toString(),
+                status = HttpStatus.INTERNAL_SERVER_ERROR,
+                error = e.javaClass.simpleName,
+                message = e.message ?: "An unexpected error occurred.",
+                path = request.getDescription(false).substringAfter("uri=")
+            ),
+            HttpStatus.INTERNAL_SERVER_ERROR
+        )
+    }
 }
