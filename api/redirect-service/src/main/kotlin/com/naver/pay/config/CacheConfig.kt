@@ -3,11 +3,13 @@ package com.naver.pay.config
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator
-import com.naver.pay.util.getCommonJacksonModules
+import com.naver.pay.util.createCommonObjectMapper
+import org.springframework.cache.CacheManager
 import org.springframework.cache.annotation.EnableCaching
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.cache.RedisCacheConfiguration
+import org.springframework.data.redis.cache.RedisCacheManager
 import org.springframework.data.redis.connection.RedisConnectionFactory
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer
@@ -27,10 +29,7 @@ class CacheConfig {
 
     @Bean
     fun redisValueSerializer(): RedisSerializer<Any> {
-        val objectMapper = ObjectMapper().apply {
-            getCommonJacksonModules().forEach { module ->
-                registerModule(module)
-            }
+        val objectMapper = createCommonObjectMapper().apply {
             activateDefaultTyping(
                 LaissezFaireSubTypeValidator(),
                 ObjectMapper.DefaultTyping.EVERYTHING,
@@ -49,6 +48,13 @@ class CacheConfig {
             .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(redisKeySerializer))
             .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(redisValueSerializer))
             .entryTtl(Duration.ofMinutes(10))
+    }
+
+    @Bean
+    fun cacheManager(connectionFactory: RedisConnectionFactory, redisCacheConfiguration: RedisCacheConfiguration): CacheManager {
+        return RedisCacheManager.builder(connectionFactory)
+            .cacheDefaults(redisCacheConfiguration)
+            .build()
     }
 
     @Bean
