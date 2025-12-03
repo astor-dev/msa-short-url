@@ -6,4 +6,5 @@ object CacheNames {
     const val SHORT_URL_TOTAL_CLICKS = "$PREFIX::total_clicks"
     const val SHORT_URL_LAST_CLICKED_AT = "$PREFIX::last_clicked_at"
     const val RESOLVED_SHORT_URL_BY_SHORT_KEY = "$PREFIX::by_short_key"
+    const val CLICK_SUMMARY_INIT_LOCK = "$PREFIX::click_summary_init_lock"
 }
