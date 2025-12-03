@@ -9,6 +9,7 @@ include("domain")
 include("domain:outbox")
 include("domain:short-url")
 include("domain:resolved-short-url")
+include("domain:short-url-stats")
 
 include("util")
 include("util:object-mapper")
