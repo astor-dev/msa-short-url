@@ -6,9 +6,11 @@ include("api:url-service")
 include("api:redirect-service")
 
 include("domain")
-include("domain:short-url")
 include("domain:outbox")
+include("domain:short-url")
+include("domain:resolved-short-url")
 
 include("util")
 include("util:object-mapper")
 include("util:distributed-lock")
+
