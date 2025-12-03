@@ -10,3 +10,4 @@ include("domain:short-url")
 include("domain:outbox")
 
 include("util")
+include("util:object-mapper")

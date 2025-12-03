@@ -3,7 +3,7 @@ subprojects {
     apply(plugin = "org.jetbrains.kotlin.plugin.spring")
 
     dependencies {
-        implementation(project(":util"))
+        implementation(project(":util:object-mapper"))
         implementation("org.springframework.boot:spring-boot-starter")
         implementation("org.springframework.boot:spring-boot-starter-validation")
         testImplementation("org.springframework.boot:spring-boot-starter-test") {
