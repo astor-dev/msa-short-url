@@ -5,6 +5,7 @@ subprojects {
     dependencies {
         implementation(project(":util"))
         implementation("org.springframework.boot:spring-boot-starter")
+        implementation("org.springframework.boot:spring-boot-starter-validation")
         testImplementation("org.springframework.boot:spring-boot-starter-test") {
             exclude(group = "org.junit.vintage")
             exclude(group = "org.mockito")
