@@ -9,7 +9,7 @@ class EventPublicationEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
-    val destination: String,
+    val bindingName: String,
     val message: String,
     val createdAt: Instant = Instant.now(),
     val publishedAt: Instant? = null,

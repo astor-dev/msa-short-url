@@ -11,10 +11,10 @@ class OutboxService(
     private val objectMapper: ObjectMapper,
 ) {
 
-    fun publishEvent(destination: String, event: Any) {
+    fun publishEvent(bindingName: String, event: Any) {
         val message = objectMapper.writeValueAsString(event)
         val eventEntity = EventPublicationEntity(
-            destination = destination,
+            bindingName = bindingName,
             message = message,
         )
         eventPublicationRepository.save(eventEntity)
