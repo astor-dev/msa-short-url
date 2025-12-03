@@ -16,6 +16,6 @@ class ShortUrlEventProducer(
             .withPayload(payload)
             .setHeader(KafkaHeaders.KEY, key)
             .build()
-        streamBridge.send(Bindings.SHORT_URL_CLICKED_BINDING, message)
+        streamBridge.send(Bindings.SHORT_URL_CLICKED, message)
     }
 }
