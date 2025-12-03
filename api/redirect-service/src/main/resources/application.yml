@@ -16,3 +16,22 @@ spring:
       hibernate:
         show_sql: true
         format_sql: true
+  cloud:
+    stream:
+      bindings:
+        shortUrlClicked-out-0:
+          destination: short_url.clicked
+          content-type: application/json
+          producer:
+            partition-count: 3
+      kafka:
+        binder:
+          brokers: localhost:29092, localhost:29093, localhost:29094
+          auto-create-topics: false
+          required-acks: 0
+          configuration:
+            key.serializer: org.apache.kafka.common.serialization.StringSerializer
+        bindings:
+            shortUrlClicked-out-0:
+                producer:
+                  sync: false
