@@ -6,6 +6,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     runtimeOnly("com.mysql:mysql-connector-j")
 
+    implementation("org.springframework.cloud:spring-cloud-stream")
+    implementation("org.springframework.cloud:spring-cloud-stream-binder-kafka")
+    testImplementation("org.springframework.cloud:spring-cloud-stream-test-binder")
+
     testImplementation("org.testcontainers:mysql")
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.junit.vintage")
