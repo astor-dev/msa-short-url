@@ -1,12 +1,17 @@
 package com.naver.pay.shorturl.stats.infrastructure.redis
 
 import com.naver.pay.shorturl.stats.CacheNames
+import com.naver.pay.shorturl.stats.DailyStatsVo
+import com.naver.pay.shorturl.stats.DeviceStatsVo
+import com.naver.pay.shorturl.stats.KeyCountVo
 import com.naver.pay.shorturl.stats.ShortUrlStatsCacheService
 import org.springframework.data.redis.core.RedisTemplate
+import org.springframework.data.redis.core.ZSetOperations
 import org.springframework.data.redis.core.script.DefaultRedisScript
 import org.springframework.data.redis.core.script.RedisScript
 import org.springframework.stereotype.Service
 import java.time.Duration
+import java.util.Collections
 
 @Service
 class ShortUrlStatsRedisCacheService(
@@ -45,12 +50,12 @@ class ShortUrlStatsRedisCacheService(
         referrer: String,
         device: String
     ) {
-        val globalUrlKey = "${CacheNames.DAILY_TOP_URLS}::$dateKey"
+        val urlKey = "${CacheNames.DAILY_TOP_URLS}::$dateKey"
         val referrerKey = "${CacheNames.DAILY_TOP_REFERRERS}::$dateKey"
         val deviceParentKey = "${CacheNames.DAILY_TOP_DEVICES}::$dateKey"
         val deviceChildKey = "${CacheNames.DAILY_TOP_DEVICES}::$dateKey::${CacheNames.INFIX_DAILY_TOP_URLS}::$device"
 
-        val keys = listOf(globalUrlKey, referrerKey, deviceParentKey, deviceChildKey)
+        val keys = listOf(urlKey, referrerKey, deviceParentKey, deviceChildKey)
         val args = arrayOf(shortKey, referrer, device, ttlSeconds.toString())
 
         redisTemplate.execute(
@@ -58,5 +63,48 @@ class ShortUrlStatsRedisCacheService(
             keys,
             *args,
         )
+    }
+
+    fun getDailyStatistics(dateKey: String, limit: Long = 10): DailyStatsVo {
+        val urlKey = "${CacheNames.DAILY_TOP_URLS}::$dateKey"
+        val topUrls = getTopRank(urlKey, limit).mapNotNull { toKeyCount(it) }
+        val referrerKey = "${CacheNames.DAILY_TOP_REFERRERS}::$dateKey"
+        val topReferrers = getTopRank(referrerKey, limit).mapNotNull { toKeyCount(it) }
+        val deviceParentKey = "${CacheNames.DAILY_TOP_DEVICES}::$dateKey"
+        val deviceParentTuples = getTopRank(deviceParentKey, -1)
+
+        // Parent에서 얻은 device 목록을 순회하며 Child Key 조회
+        val topByDevice = deviceParentTuples.map { parentTuple ->
+            val deviceType = parentTuple.value ?: "Unknown"
+            val childKey = "${CacheNames.DAILY_TOP_DEVICES}::$dateKey::${CacheNames.INFIX_DAILY_TOP_URLS}::$deviceType"
+            val childUrls = getTopRank(childKey, limit).mapNotNull { toKeyCount(it) }
+            DeviceStatsVo(
+                deviceType = deviceType,
+                totalCount = parentTuple.score?.toLong() ?: 0L,
+                topUrls = childUrls
+            )
+        }
+
+        return DailyStatsVo(
+            dateKey = dateKey,
+            topUrls = topUrls,
+            topReferrers = topReferrers,
+            topByDevice = topByDevice
+        )
+    }
+
+    private fun getTopRank(key: String, limit: Long): Set<ZSetOperations.TypedTuple<String>> {
+        val end = if (limit < 0) -1 else limit - 1
+        return redisTemplate.opsForZSet()
+            .reverseRangeWithScores(key, 0, end) ?: Collections.emptySet()
+    }
+
+    private fun toKeyCount(tuple: ZSetOperations.TypedTuple<String>): KeyCountVo? {
+        return tuple.value?.let {
+            KeyCountVo(
+                key = it,
+                count = tuple.score?.toLong() ?: 0
+            )
+        }
     }
 }
