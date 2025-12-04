@@ -1,9 +1,7 @@
 package com.naver.pay.shorturl
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.naver.pay.shorturl.infrastructure.jpa.ShortUrlRepository
 import org.springframework.cache.annotation.Cacheable
-import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.util.concurrent.ThreadLocalRandom
@@ -11,8 +9,7 @@ import java.util.concurrent.ThreadLocalRandom
 @Service
 class ShortUrlCachableService(
     private val shortUrlRepository: ShortUrlRepository,
-    private val redisTemplate: RedisTemplate<String, String>,
-    private val objectMapper: ObjectMapper
+    private val shortUrlCacheService: ShortUrlCacheService,
 ) {
 
     /**
@@ -23,11 +20,7 @@ class ShortUrlCachableService(
      * @return ShortUrl 조회된 ShortUrl 도메인 객체
      */
     fun findShortUrlByShortKeyOrThrow(shortKey: String): ShortUrl {
-        val cacheKey = "${CacheNames.SHORT_URL_BY_SHORT_KEY}::$shortKey"
-        val cachedValue = redisTemplate.opsForValue().get(cacheKey)
-        val cachedShortUrl = runCatching {
-            objectMapper.readValue(cachedValue, ShortUrl::class.java)
-        }.getOrNull()
+        val cachedShortUrl = shortUrlCacheService.findShortUrlByShortKey(shortKey)
         if (cachedShortUrl != null) {
             return cachedShortUrl
         }
@@ -35,8 +28,7 @@ class ShortUrlCachableService(
             .map { it.toDomain() }
             .orElseThrow { NoSuchElementException("Short URL not found: $shortKey") }
         val ttl = calculateDynamicTtl()
-        val jsonString = objectMapper.writeValueAsString(shortUrl)
-        redisTemplate.opsForValue().set(cacheKey, jsonString, ttl)
+        shortUrlCacheService.cacheShortUrlByShortKey(shortUrl, ttl)
         return shortUrl
     }
 
