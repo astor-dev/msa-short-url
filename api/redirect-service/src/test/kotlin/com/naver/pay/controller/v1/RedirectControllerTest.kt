@@ -28,7 +28,7 @@ class RedirectControllerTest : BehaviorSpec() {
                 val shortKey = "testKey"
                 val originalUrl = "https://naver.com"
 
-                every { redirectService.getRedirectUrl(shortKey, null, null) } returns originalUrl
+                every { redirectService.getRedirectUrlOrThrow(shortKey, null, null) } returns originalUrl
 
                 val result = mockMvc.get("/v1/urls/$shortKey")
 
@@ -48,7 +48,7 @@ class RedirectControllerTest : BehaviorSpec() {
                 val userAgent = "Test-Agent"
                 val referrer = "https://test.com"
 
-                every { redirectService.getRedirectUrl(shortKey, userAgent, referrer) } returns originalUrl
+                every { redirectService.getRedirectUrlOrThrow(shortKey, userAgent, referrer) } returns originalUrl
 
                 val result = mockMvc.get("/v1/urls/$shortKey") {
                     header("User-Agent", userAgent)
@@ -68,7 +68,7 @@ class RedirectControllerTest : BehaviorSpec() {
             When("존재하지 않는 shortKey로 리다이렉트를 요청하면") {
                 val shortKey = "nonExistentKey"
                 every {
-                    redirectService.getRedirectUrl(
+                    redirectService.getRedirectUrlOrThrow(
                         shortKey,
                         null,
                         null
@@ -87,7 +87,7 @@ class RedirectControllerTest : BehaviorSpec() {
             When("만료된 shortKey로 리다이렉트를 요청하면") {
                 val shortKey = "expiredKey"
                 val originalUrl = "https://naver.com"
-                every { redirectService.getRedirectUrl(shortKey, null, null) } throws ExpiredLinkException(originalUrl)
+                every { redirectService.getRedirectUrlOrThrow(shortKey, null, null) } throws ExpiredLinkException(originalUrl)
 
                 val result = mockMvc.get("/v1/urls/$shortKey")
 

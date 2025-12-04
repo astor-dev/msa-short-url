@@ -21,7 +21,7 @@ class RedirectService(
      * @throws ExpiredLinkException 해당 링크가 만료된 경우
      * @return String 원본 URL
      */
-    fun getRedirectUrl(shortKey: String, userAgent: String?, referrer: String?): String {
+    fun getRedirectUrlOrThrow(shortKey: String, userAgent: String?, referrer: String?): String {
         val shortUrl = shortUrlCachableService.findShortUrlByShortKeyOrThrow(shortKey)
         if (shortUrl.expiresAt <= Instant.now()) {
             throw ExpiredLinkException(shortUrl.originalUrl)

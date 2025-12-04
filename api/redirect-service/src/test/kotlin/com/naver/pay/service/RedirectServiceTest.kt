@@ -52,12 +52,12 @@ class RedirectServiceTest : BehaviorSpec({
 
 
             Then("원본 URL을 반환해야 한다") {
-                val result = redirectService.getRedirectUrl(shortKey, userAgent, referrer)
+                val result = redirectService.getRedirectUrlOrThrow(shortKey, userAgent, referrer)
                 result shouldBe originalUrl
             }
 
             Then("클릭 이벤트를 발행해야 한다") {
-                redirectService.getRedirectUrl(shortKey, userAgent, referrer)
+                redirectService.getRedirectUrlOrThrow(shortKey, userAgent, referrer)
                 verify(exactly = 1) {
                     shortUrlEventProducer.publishUrlClicked(
                         shortKey,
@@ -69,7 +69,7 @@ class RedirectServiceTest : BehaviorSpec({
             }
             
             Then("user agent와 referrer가 null일 경우 기본값으로 클릭 이벤트를 발행해야 한다") {
-                redirectService.getRedirectUrl(shortKey, null, null)
+                redirectService.getRedirectUrlOrThrow(shortKey, null, null)
                 verify(exactly = 1) {
                     shortUrlEventProducer.publishUrlClicked(
                         shortKey,
@@ -94,13 +94,13 @@ class RedirectServiceTest : BehaviorSpec({
 
             Then("ExpiredLinkException을 던져야 한다") {
                 shouldThrow<ExpiredLinkException> {
-                    redirectService.getRedirectUrl(shortKey, userAgent, referrer)
+                    redirectService.getRedirectUrlOrThrow(shortKey, userAgent, referrer)
                 }
             }
 
             Then("클릭 이벤트를 발행하지 않아야 한다") {
                 shouldThrow<ExpiredLinkException> {
-                    redirectService.getRedirectUrl(shortKey, userAgent, referrer)
+                    redirectService.getRedirectUrlOrThrow(shortKey, userAgent, referrer)
                 }
                 verify(exactly = 0) { shortUrlEventProducer.publishUrlClicked(any(), any()) }
             }
@@ -111,13 +111,13 @@ class RedirectServiceTest : BehaviorSpec({
 
             Then("NoSuchElementException을 던져야 한다") {
                 shouldThrow<NoSuchElementException> {
-                    redirectService.getRedirectUrl("nonExistentKey", userAgent, referrer)
+                    redirectService.getRedirectUrlOrThrow("nonExistentKey", userAgent, referrer)
                 }
             }
 
             Then("클릭 이벤트를 발행하지 않아야 한다") {
                 shouldThrow<NoSuchElementException> {
-                    redirectService.getRedirectUrl("nonExistentKey", userAgent, referrer)
+                    redirectService.getRedirectUrlOrThrow("nonExistentKey", userAgent, referrer)
                 }
                 verify(exactly = 0) { shortUrlEventProducer.publishUrlClicked(any(), any()) }
             }

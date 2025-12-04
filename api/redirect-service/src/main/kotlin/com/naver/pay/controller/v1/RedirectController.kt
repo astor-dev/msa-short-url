@@ -23,7 +23,7 @@ class RedirectController(
         @RequestHeader("User-Agent", required = false) userAgent: String?,
         @RequestHeader("Referer", required = false) referrer: String?
     ): ResponseEntity<Void> {
-        val redirectUrl = redirectService.getRedirectUrl(
+        val redirectUrl = redirectService.getRedirectUrlOrThrow(
             shortKey = shortKey,
             userAgent = userAgent,
             referrer = referrer
