@@ -25,6 +25,6 @@ class ShortUrlStatsService(
     }
 
     fun findShortUrlDailyTopStatsOrThrow(date: LocalDate, limit: Long): DailyTopStatsResponseDto {
-        return shortUrlDailyTopStatsService.findOne(date, limit).toDto()
+        return shortUrlDailyTopStatsService.getOne(date, limit).toDto()
     }
 }

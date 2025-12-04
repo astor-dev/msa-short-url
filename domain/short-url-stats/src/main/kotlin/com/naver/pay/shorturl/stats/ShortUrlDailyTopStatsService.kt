@@ -1,18 +1,7 @@
 package com.naver.pay.shorturl.stats
 
 import com.naver.pay.shorturl.ShortUrlCachableService
-import com.naver.pay.shorturl.stats.infrastructure.mongodb.DailyTopByDeviceUrlsDocument
-import com.naver.pay.shorturl.stats.infrastructure.mongodb.DailyTopByDeviceUrlsRepository
-import com.naver.pay.shorturl.stats.infrastructure.mongodb.DailyTopDevicesDocument
-import com.naver.pay.shorturl.stats.infrastructure.mongodb.DailyTopDevicesRepository
-import com.naver.pay.shorturl.stats.infrastructure.mongodb.DailyTopReferrersDocument
-import com.naver.pay.shorturl.stats.infrastructure.mongodb.DailyTopReferrersRepository
-import com.naver.pay.shorturl.stats.infrastructure.mongodb.DailyTopUrlsDocument
-import com.naver.pay.shorturl.stats.infrastructure.mongodb.DailyTopUrlsRepository
-import org.springframework.data.domain.PageRequest
-import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -29,10 +18,12 @@ class ShortUrlDailyTopStatsService(
      * @param limit top N에서 N의 상한
      * @return ShortUrlDailyTopStats 일 단위 Top N 통계
      */
-    fun findOne(date: LocalDate, limit: Long): ShortUrlDailyTopStats {
+    fun getOne(date: LocalDate, limit: Long): ShortUrlDailyTopStats {
         val statsFromPersistence =  shortUrlDailyTopStatsPersistenceService.findOne(date, limit)
         if(statsFromPersistence != null) return statsFromPersistence
-        val dailyStatsVo = shortUrlStatsCacheService.getDailyStatistics(date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")), limit)
+        val dateString = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+        val dailyStatsVo = shortUrlStatsCacheService.findDailyStatistics(dateString, limit)
+            ?: return ShortUrlDailyTopStats(date = dateString)
         return resolveTotalStats(dailyStatsVo)
     }
 

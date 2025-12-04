@@ -9,5 +9,5 @@ interface ShortUrlStatsCacheService {
         device: String
     )
 
-    fun getDailyStatistics(dateKey: String, limit: Long): DailyStatsVo
+    fun findDailyStatistics(dateKey: String, limit: Long): DailyStatsVo?
 }

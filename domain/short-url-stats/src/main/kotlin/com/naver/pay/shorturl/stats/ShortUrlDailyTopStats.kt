@@ -2,9 +2,9 @@
 
 data class ShortUrlDailyTopStats(
     val date: String,
-    val topUrls: List<TopUrlInfo>,
-    val topReferrers: List<TopReferrerInfo>,
-    val topByDevice: List<TopByDeviceInfo>
+    val topUrls: List<TopUrlInfo> = emptyList(),
+    val topReferrers: List<TopReferrerInfo> = emptyList(),
+    val topByDevice: List<TopByDeviceInfo> = emptyList(),
 )
 
 data class TopUrlInfo(
