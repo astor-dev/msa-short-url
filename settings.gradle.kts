@@ -4,6 +4,7 @@ include("api")
 include("api:gateway")
 include("api:url-service")
 include("api:redirect-service")
+include("api:stats-service")
 
 include("domain")
 include("domain:outbox")
