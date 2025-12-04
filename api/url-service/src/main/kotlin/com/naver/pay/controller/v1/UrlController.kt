@@ -2,6 +2,7 @@ package com.naver.pay.controller.v1
 
 import com.naver.pay.service.ShortUrlService
 import jakarta.validation.Valid
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -15,11 +16,13 @@ class UrlController(
 ) {
     @PostMapping
     fun createShortUrl(@Valid @RequestBody requestDto: UrlRequestDto): ResponseEntity<UrlResponseDto> {
-        return ResponseEntity.ok(
-            shortUrlService.create(
-                originalUrl = requestDto.originalUrl,
-                ttlSeconds = requestDto.ttlSeconds
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(
+                shortUrlService.create(
+                    originalUrl = requestDto.originalUrl,
+                    ttlSeconds = requestDto.ttlSeconds
+                )
             )
-        )
     }
 }

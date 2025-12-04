@@ -42,9 +42,9 @@ class UrlControllerTest: BehaviorSpec() {
                     content = objectMapper.writeValueAsString(requestDto)
                 }
 
-                Then("200 OK와 함께 단축 URL 정보를 반환한다") {
+                Then("201 CREATED와 함께 단축 URL 정보를 반환한다") {
                     result.andExpect {
-                        status { isOk() }
+                        status { isCreated() }
                         content {
                             contentType(MediaType.APPLICATION_JSON)
                             jsonPath("$.shortKey") { value("testKey") }
