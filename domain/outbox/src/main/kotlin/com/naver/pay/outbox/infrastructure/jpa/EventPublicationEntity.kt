@@ -4,7 +4,13 @@ import jakarta.persistence.*
 import java.time.Instant
 
 @Entity
-@Table(name = "event_publication")
+@Table(
+    name = "event_publication",
+    indexes = [
+        Index(name = "event_publication_by_published_at_idx", columnList = "published_at"),
+        Index(name = "event_publication_by_published_at_created_at_idx", columnList = "published_at, created_at")
+    ]
+)
 class EventPublicationEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
