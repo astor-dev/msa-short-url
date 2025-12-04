@@ -36,3 +36,38 @@ data class ShortUrlStatisticsByReferrerResponseDto (
     val referrer: String,
     val clicks: Long,
 )
+
+data class DailyTopStatsResponseDto (
+    val date: String,
+    val topUrls: List<TopUrlResponseDto>,
+    val topReferrers: List<TopReferrerResponseDto>,
+    val topByDevice: List<TopByDeviceResponseDto>
+)
+
+data class TopUrlResponseDto (
+    val rank: Int,
+    val shortKey: String,
+    val shortUrl: String,
+    val originalUrl: String,
+    val totalClicks: Long
+)
+
+data class TopReferrerResponseDto (
+    val rank: Int,
+    val referrer: String,
+    val totalClicks: Long
+)
+
+data class TopByDeviceResponseDto (
+    val deviceType: String,
+    val totalClicks: Long,
+    val topUrls: List<TopByDeviceUrlResponseDto>
+)
+
+data class TopByDeviceUrlResponseDto (
+    val rank: Int,
+    val shortKey: String,
+    val shortUrl: String,
+    val originalUrl: String,
+    val clicksFromThisDevice: Long
+)

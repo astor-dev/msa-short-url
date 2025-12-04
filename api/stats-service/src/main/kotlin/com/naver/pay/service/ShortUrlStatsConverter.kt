@@ -1,12 +1,18 @@
 package com.naver.pay.service
 
 import com.naver.pay.controller.v1.ClickSummaryResponseDto
+import com.naver.pay.controller.v1.DailyTopStatsResponseDto
 import com.naver.pay.controller.v1.ShortUrlStateResponseDto
 import com.naver.pay.controller.v1.ShortUrlStatisticsByDateResponseDto
 import com.naver.pay.controller.v1.ShortUrlStatisticsByDeviceTypeResponseDto
 import com.naver.pay.controller.v1.ShortUrlStatisticsByReferrerResponseDto
 import com.naver.pay.controller.v1.ShortUrlStatisticsResponseDto
+import com.naver.pay.controller.v1.TopByDeviceResponseDto
+import com.naver.pay.controller.v1.TopByDeviceUrlResponseDto
+import com.naver.pay.controller.v1.TopReferrerResponseDto
+import com.naver.pay.controller.v1.TopUrlResponseDto
 import com.naver.pay.shorturl.resolved.ResolvedShortUrl
+import com.naver.pay.shorturl.stats.ShortUrlDailyTopStats
 import com.naver.pay.shorturl.stats.ShortUrlTotalStats
 import java.time.temporal.ChronoUnit
 
@@ -51,5 +57,48 @@ fun ShortUrlTotalStats.toDto() : ShortUrlStatisticsResponseDto {
         byDate =  byDate,
         byDevice = byDevice,
         byReferrer = byReferrer
+    )
+}
+
+fun ShortUrlDailyTopStats.toDto(): DailyTopStatsResponseDto {
+    val topUrls = this.topUrls.map {
+        TopUrlResponseDto(
+            rank = it.rank,
+            shortKey = it.shortKey,
+            shortUrl = it.shortUrl,
+            originalUrl = it.originalUrl,
+            totalClicks = it.totalClicks
+        )
+    }
+
+    val topReferrers = this.topReferrers.map {
+        TopReferrerResponseDto(
+            rank = it.rank,
+            referrer = it.referrer,
+            totalClicks = it.totalClicks
+        )
+    }
+
+    val topByDevice = this.topByDevice.map { deviceInfo ->
+        TopByDeviceResponseDto(
+            deviceType = deviceInfo.deviceType,
+            totalClicks = deviceInfo.totalClicks,
+            topUrls = deviceInfo.topUrls.map { urlInfo ->
+                TopByDeviceUrlResponseDto(
+                    rank = urlInfo.rank,
+                    shortKey = urlInfo.shortKey,
+                    shortUrl = urlInfo.shortUrl,
+                    originalUrl = urlInfo.originalUrl,
+                    clicksFromThisDevice = urlInfo.totalClicks
+                )
+            }
+        )
+    }
+
+    return DailyTopStatsResponseDto(
+        date = this.date,
+        topUrls = topUrls,
+        topReferrers = topReferrers,
+        topByDevice = topByDevice
     )
 }

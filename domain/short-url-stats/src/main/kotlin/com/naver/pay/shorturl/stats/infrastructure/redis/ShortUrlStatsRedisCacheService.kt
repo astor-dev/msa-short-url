@@ -65,7 +65,7 @@ class ShortUrlStatsRedisCacheService(
         )
     }
 
-    fun getDailyStatistics(dateKey: String, limit: Long = 10): DailyStatsVo {
+    override fun getDailyStatistics(dateKey: String, limit: Long): DailyStatsVo {
         val urlKey = "${CacheNames.DAILY_TOP_URLS}::$dateKey"
         val topUrls = getTopRank(urlKey, limit).mapNotNull { toKeyCount(it) }
         val referrerKey = "${CacheNames.DAILY_TOP_REFERRERS}::$dateKey"
