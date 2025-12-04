@@ -23,6 +23,19 @@ data class DailyTopUrlsDocument(
         // yyyy-MM-dd
         private fun generateDocumentId(dateString: String, shortKey: String) =
             "${dateString}_$shortKey"
+
+        fun of(date: String, topUrlInfo: TopUrlInfo): DailyTopUrlsDocument {
+            return DailyTopUrlsDocument(
+                id = generateDocumentId(date, topUrlInfo.shortKey),
+                date = date,
+                rank = topUrlInfo.rank,
+                shortKey = topUrlInfo.shortKey,
+                totalClicks = topUrlInfo.totalClicks,
+                shortUrl = topUrlInfo.shortUrl,
+                originalUrl = topUrlInfo.originalUrl,
+                lastUpdatedAt = Instant.now()
+            )
+        }
     }
 
     fun toDomain(): TopUrlInfo {

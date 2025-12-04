@@ -21,6 +21,16 @@ data class DailyTopDevicesDocument(
         // yyyy-MM-dd
         private fun generateDocumentId(dateString: String, deviceType: String) =
             "${dateString}_$deviceType"
+
+        fun of(date: String, topByDeviceInfo: TopByDeviceInfo): DailyTopDevicesDocument {
+            return DailyTopDevicesDocument(
+                id = generateDocumentId(date, topByDeviceInfo.deviceType),
+                date = date,
+                deviceType = topByDeviceInfo.deviceType,
+                totalClicks = topByDeviceInfo.totalClicks,
+                lastUpdatedAt = Instant.now()
+            )
+        }
     }
 
     fun toDomain(topUrls: List<TopUrlInfo>): TopByDeviceInfo {

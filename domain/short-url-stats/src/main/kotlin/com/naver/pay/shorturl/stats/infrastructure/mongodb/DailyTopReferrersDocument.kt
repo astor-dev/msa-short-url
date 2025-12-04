@@ -21,6 +21,17 @@ data class DailyTopReferrersDocument(
         // yyyy-MM-dd
         private fun generateDocumentId(dateString: String, referrer: String) =
             "${dateString}_$referrer"
+
+        fun of(date: String, topReferrerInfo: TopReferrerInfo): DailyTopReferrersDocument {
+            return DailyTopReferrersDocument(
+                id = generateDocumentId(date, topReferrerInfo.referrer),
+                date = date,
+                rank = topReferrerInfo.rank,
+                referrer = topReferrerInfo.referrer,
+                totalClicks = topReferrerInfo.totalClicks,
+                lastUpdatedAt = Instant.now()
+            )
+        }
     }
 
     fun toDomain(): TopReferrerInfo {

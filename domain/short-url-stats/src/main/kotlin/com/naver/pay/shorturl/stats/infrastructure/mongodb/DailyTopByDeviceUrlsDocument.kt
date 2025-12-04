@@ -25,6 +25,21 @@ data class DailyTopByDeviceUrlsDocument(
         // yyyy-MM-dd
         private fun generateDocumentId(dateString: String, deviceType: String, shortKey: String) =
             "${dateString}_${deviceType}_$shortKey"
+
+        fun of(date: String, deviceType: String, topUrlInfo: TopUrlInfo): DailyTopByDeviceUrlsDocument {
+            return DailyTopByDeviceUrlsDocument(
+                id = generateDocumentId(date, deviceType, topUrlInfo.shortKey),
+                date = date,
+                deviceType = deviceType,
+                rank = topUrlInfo.rank,
+                shortKey = topUrlInfo.shortKey,
+                totalClicks = 0L, // 전체 클릭 수는 별도로 관리되므로 0으로 설정
+                shortUrl = topUrlInfo.shortUrl,
+                originalUrl = topUrlInfo.originalUrl,
+                clicksFromThisDevice = topUrlInfo.totalClicks,
+                lastUpdatedAt = Instant.now()
+            )
+        }
     }
 
     fun toDomain(): TopUrlInfo {
