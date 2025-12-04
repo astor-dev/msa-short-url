@@ -1,0 +1,44 @@
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: url-create
+              uri: http://localhost:8081
+              predicates:
+                - Path=/api/v1/urls
+                - Method=POST
+              filters:
+                - RewritePath=/api/(?<segment>.*), /${segment}
+
+            - id: url-redirect
+              uri: http://localhost:8082
+              predicates:
+                - Path=/{shortKey}
+              filters:
+                - RewritePath=/(?<key>.*), /v1/urls/${key}
+
+            - id: url-state
+              uri: http://localhost:8083
+              predicates:
+                - Path=/api/v1/urls/{shortKey}
+                - Method=GET
+              filters:
+                - RewritePath=/api/(?<segment>.*), /${segment}
+
+            - id: url-statistics
+              uri: http://localhost:8083
+              predicates:
+                - Path=/api/v1/urls/{shortKey}/statistics
+                - Method=GET
+              filters:
+                - RewritePath=/api/(?<segment>.*), /${segment}
+
+            - id: top-statistics
+              uri: http://localhost:8083
+              predicates:
+                - Path=/api/v1/statistics/top
+                - Method=GET
+              filters:
+                - RewritePath=/api/(?<segment>.*), /${segment}
