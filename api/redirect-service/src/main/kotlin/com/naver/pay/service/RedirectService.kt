@@ -22,7 +22,7 @@ class RedirectService(
      * @throws ExpiredLinkException 해당 링크가 만료된 경우
      * @return RedirectUrlResponseDto 원본 URL을 담은 DTO
      */
-    fun getRedirectUrl(shortKey: String): RedirectUrlResponseDto {
+    fun getRedirectUrl(shortKey: String, userAgent: String?, referrer: String?): RedirectUrlResponseDto {
         val shortUrl = shortUrlCachableService.findShortUrlByShortKeyOrThrow(shortKey)
         if (shortUrl.expiresAt <= Instant.now()) {
             throw ExpiredLinkException(shortUrl.originalUrl)
@@ -31,7 +31,8 @@ class RedirectService(
             shortKey,
             ShortUrlClickedPayload(
                 shortKey = shortKey,
-                originalUrl = shortUrl.originalUrl,
+                userAgent = userAgent ?: "Unknown",
+                referrer = referrer ?: "Direct",
                 clickedAt = Instant.now()
             )
         )

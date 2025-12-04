@@ -4,6 +4,7 @@ import java.time.Instant
 
 data class ShortUrlClickedPayload (
     val shortKey: String,
-    val originalUrl: String,
+    val referrer: String = "Direct",
+    val userAgent: String = "Unknown",
     val clickedAt: Instant
 )

@@ -35,6 +35,8 @@ class RedirectServiceTest : BehaviorSpec({
     Given("RedirectService의 getRedirectUrl 메서드가 호출될 때") {
         val shortKey = "testKey"
         val originalUrl = "https://example.com/long/original/url"
+        val userAgent = "test-agent"
+        val referrer = "test-referrer"
         val now = Instant.now()
         When("유효하고 만료되지 않은 shortKey가 주어지면") {
             val unexpiredShortUrl = ShortUrl.of(
@@ -51,17 +53,29 @@ class RedirectServiceTest : BehaviorSpec({
 
 
             Then("원본 URL을 포함하는 RedirectUrlResponseDto를 반환해야 한다") {
-                val result = redirectService.getRedirectUrl(shortKey)
+                val result = redirectService.getRedirectUrl(shortKey, userAgent, referrer)
                 result shouldBe RedirectUrlResponseDto(originalUrl = originalUrl)
             }
 
             Then("클릭 이벤트를 발행해야 한다") {
-                redirectService.getRedirectUrl(shortKey)
+                redirectService.getRedirectUrl(shortKey, userAgent, referrer)
                 verify(exactly = 1) {
                     shortUrlEventProducer.publishUrlClicked(
                         shortKey,
                         match<ShortUrlClickedPayload> {
-                            it.shortKey == shortKey && it.originalUrl == originalUrl
+                            it.shortKey == shortKey && it.userAgent == userAgent && it.referrer == referrer
+                        }
+                    )
+                }
+            }
+            
+            Then("user agent와 referrer가 null일 경우 기본값으로 클릭 이벤트를 발행해야 한다") {
+                redirectService.getRedirectUrl(shortKey, null, null)
+                verify(exactly = 1) {
+                    shortUrlEventProducer.publishUrlClicked(
+                        shortKey,
+                        match<ShortUrlClickedPayload> {
+                            it.shortKey == shortKey && it.userAgent == "Unknown" && it.referrer == "Direct"
                         }
                     )
                 }
@@ -81,11 +95,14 @@ class RedirectServiceTest : BehaviorSpec({
 
             Then("ExpiredLinkException을 던져야 한다") {
                 shouldThrow<ExpiredLinkException> {
-                    redirectService.getRedirectUrl(shortKey)
+                    redirectService.getRedirectUrl(shortKey, userAgent, referrer)
                 }
             }
 
             Then("클릭 이벤트를 발행하지 않아야 한다") {
+                shouldThrow<ExpiredLinkException> {
+                    redirectService.getRedirectUrl(shortKey, userAgent, referrer)
+                }
                 verify(exactly = 0) { shortUrlEventProducer.publishUrlClicked(any(), any()) }
             }
         }
@@ -95,11 +112,14 @@ class RedirectServiceTest : BehaviorSpec({
 
             Then("NoSuchElementException을 던져야 한다") {
                 shouldThrow<NoSuchElementException> {
-                    redirectService.getRedirectUrl("nonExistentKey")
+                    redirectService.getRedirectUrl("nonExistentKey", userAgent, referrer)
                 }
             }
 
             Then("클릭 이벤트를 발행하지 않아야 한다") {
+                shouldThrow<NoSuchElementException> {
+                    redirectService.getRedirectUrl("nonExistentKey", userAgent, referrer)
+                }
                 verify(exactly = 0) { shortUrlEventProducer.publishUrlClicked(any(), any()) }
             }
         }

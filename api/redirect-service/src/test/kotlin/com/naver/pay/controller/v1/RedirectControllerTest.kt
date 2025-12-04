@@ -1,7 +1,6 @@
 package com.naver.pay.controller.v1
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.naver.pay.controller.exception.GlobalExceptionHandler
 import com.naver.pay.exception.ExpiredLinkException
 import com.naver.pay.service.RedirectService
 import com.ninjasquad.springmockk.MockkBean
@@ -11,18 +10,18 @@ import io.kotest.extensions.spring.SpringExtension
 import io.mockk.every
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
-import org.springframework.context.annotation.ComponentScan
-import org.springframework.context.annotation.FilterType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 
 @ApplyExtension(SpringExtension::class)
-@WebMvcTest
-class RedirectControllerTest: BehaviorSpec() {
+@WebMvcTest(RedirectController::class)
+class RedirectControllerTest : BehaviorSpec() {
     @Autowired
     lateinit var mockMvc: MockMvc
+
     @Autowired
     lateinit var objectMapper: ObjectMapper
+
     @MockkBean
     lateinit var redirectService: RedirectService
 
@@ -33,7 +32,7 @@ class RedirectControllerTest: BehaviorSpec() {
                 val originalUrl = "https://naver.com"
                 val responseDto = RedirectUrlResponseDto(originalUrl)
 
-                every { redirectService.getRedirectUrl(shortKey) } returns responseDto
+                every { redirectService.getRedirectUrl(shortKey, null, null) } returns responseDto
 
                 val result = mockMvc.get("/v1/urls/$shortKey")
 
@@ -48,9 +47,40 @@ class RedirectControllerTest: BehaviorSpec() {
                 }
             }
 
+            When("유효한 shortKey와 헤더로 리다이렉트를 요청하면") {
+                val shortKey = "testKeyWithHeaders"
+                val originalUrl = "https://naver.com"
+                val userAgent = "Test-Agent"
+                val referrer = "https://test.com"
+                val responseDto = RedirectUrlResponseDto(originalUrl)
+
+                every { redirectService.getRedirectUrl(shortKey, userAgent, referrer) } returns responseDto
+
+                val result = mockMvc.get("/v1/urls/$shortKey") {
+                    header("User-Agent", userAgent)
+                    header("Referer", referrer)
+                }
+
+                Then("200 OK와 함께 원본 URL 정보를 반환한다") {
+                    result.andExpect {
+                        status { isOk() }
+                        content {
+                            json(objectMapper.writeValueAsString(responseDto))
+                            jsonPath("$.originalUrl") { value(originalUrl) }
+                        }
+                    }
+                }
+            }
+
             When("존재하지 않는 shortKey로 리다이렉트를 요청하면") {
                 val shortKey = "nonExistentKey"
-                every { redirectService.getRedirectUrl(shortKey) } throws NoSuchElementException("$shortKey 에 해당하는 URL을 찾을 수 없습니다.")
+                every {
+                    redirectService.getRedirectUrl(
+                        shortKey,
+                        null,
+                        null
+                    )
+                } throws NoSuchElementException("$shortKey 에 해당하는 URL을 찾을 수 없습니다.")
 
                 val result = mockMvc.get("/v1/urls/$shortKey")
 
@@ -64,7 +94,7 @@ class RedirectControllerTest: BehaviorSpec() {
             When("만료된 shortKey로 리다이렉트를 요청하면") {
                 val shortKey = "expiredKey"
                 val originalUrl = "https://naver.com"
-                every { redirectService.getRedirectUrl(shortKey) } throws ExpiredLinkException(originalUrl)
+                every { redirectService.getRedirectUrl(shortKey, null, null) } throws ExpiredLinkException(originalUrl)
 
                 val result = mockMvc.get("/v1/urls/$shortKey")
 
