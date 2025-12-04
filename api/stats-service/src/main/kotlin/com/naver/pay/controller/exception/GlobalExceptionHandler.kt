@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.context.request.WebRequest
+import org.springframework.web.method.annotation.HandlerMethodValidationException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -38,6 +39,22 @@ class GlobalExceptionHandler {
             HttpStatus.BAD_REQUEST
         )
     }
+
+    @ExceptionHandler(HandlerMethodValidationException::class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    fun handleHandlerMethodValidationException(e: HandlerMethodValidationException, request: WebRequest): ResponseEntity<ErrorResponse> {
+        return ResponseEntity(
+            ErrorResponse(
+                timestamp = System.currentTimeMillis().toString(),
+                status = HttpStatus.BAD_REQUEST,
+                error = e.javaClass.simpleName,
+                message = e.message,
+                path = request.getDescription(false).substringAfter("uri=")
+            ),
+            HttpStatus.BAD_REQUEST
+        )
+    }
+
 
     @ExceptionHandler(Exception::class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
