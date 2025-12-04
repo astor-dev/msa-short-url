@@ -17,3 +17,4 @@ include("util:distributed-lock")
 
 
 include("worker")
+include("worker:outbox-polling-publisher")

@@ -39,7 +39,7 @@ class ShortUrlStoreService(
 
         // NOTE: 논리 상 shortKey는 null이 될 수 없으나, 안전성을 위해 null 체크를 수행합니다.
         updatedShortUrl.shortKey?.let {
-            outboxService.publishEvent(Bindings.SHORT_URL_CREATED, ShortUrlCreatedPayload(
+            outboxService.storeEvent(Bindings.SHORT_URL_CREATED, ShortUrlCreatedPayload(
                 shortKey = it,
                 originalUrl = updatedShortUrl.originalUrl
             ))

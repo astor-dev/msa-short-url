@@ -10,7 +10,7 @@ import java.time.Instant
 interface EventPublicationRepository : JpaRepository<EventPublicationEntity, Long> {
     @Query(
         value = """
-        SELECT id, binding_name AS bindingName, message, created_at AS createdAt, published_at AS publishedAt 
+        SELECT id, binding_name , message, created_at , published_at 
         FROM event_publication 
         WHERE published_at IS NULL 
         ORDER BY created_at 
