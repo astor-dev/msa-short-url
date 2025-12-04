@@ -1,6 +1,5 @@
 package com.naver.pay.service
 
-import com.naver.pay.controller.v1.RedirectUrlResponseDto
 import com.naver.pay.exception.ExpiredLinkException
 import com.naver.pay.shorturl.ShortUrlCachableService
 import com.naver.pay.shorturl.ShortUrlClickedPayload
@@ -16,13 +15,13 @@ class RedirectService(
 ) {
 
     /**
-     * 주어진 shortKey에 해당하는 원본 URL을 반환합니다.
+     * 주어진 shortKey에 해당하는 원본 URL String을 반환합니다.
      * 조회 후 클릭 이벤트를 발행합니다.
      * @throws NoSuchElementException 해당 shortKey가 존재하지 않을 경우
      * @throws ExpiredLinkException 해당 링크가 만료된 경우
-     * @return RedirectUrlResponseDto 원본 URL을 담은 DTO
+     * @return String 원본 URL
      */
-    fun getRedirectUrl(shortKey: String, userAgent: String?, referrer: String?): RedirectUrlResponseDto {
+    fun getRedirectUrl(shortKey: String, userAgent: String?, referrer: String?): String {
         val shortUrl = shortUrlCachableService.findShortUrlByShortKeyOrThrow(shortKey)
         if (shortUrl.expiresAt <= Instant.now()) {
             throw ExpiredLinkException(shortUrl.originalUrl)
@@ -36,8 +35,7 @@ class RedirectService(
                 clickedAt = Instant.now()
             )
         )
-        return RedirectUrlResponseDto(
-            originalUrl = shortUrl.originalUrl
-        )
+        return shortUrl.originalUrl
+
     }
 }

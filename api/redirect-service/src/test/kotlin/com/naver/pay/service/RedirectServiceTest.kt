@@ -1,14 +1,13 @@
 package com.naver.pay.service
 
-import com.naver.pay.controller.v1.RedirectUrlResponseDto
 import com.naver.pay.exception.ExpiredLinkException
 import com.naver.pay.shorturl.ShortUrl
 import com.naver.pay.shorturl.ShortUrlCachableService
 import com.naver.pay.shorturl.ShortUrlClickedPayload
 import com.naver.pay.shorturl.infrastructure.stream.ShortUrlEventProducer
 import io.kotest.core.spec.style.BehaviorSpec
-import io.kotest.matchers.shouldBe
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
 import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
@@ -52,9 +51,9 @@ class RedirectServiceTest : BehaviorSpec({
             every { shortUrlEventProducer.publishUrlClicked(any(), any()) } returns Unit
 
 
-            Then("원본 URL을 포함하는 RedirectUrlResponseDto를 반환해야 한다") {
+            Then("원본 URL을 반환해야 한다") {
                 val result = redirectService.getRedirectUrl(shortKey, userAgent, referrer)
-                result shouldBe RedirectUrlResponseDto(originalUrl = originalUrl)
+                result shouldBe originalUrl
             }
 
             Then("클릭 이벤트를 발행해야 한다") {

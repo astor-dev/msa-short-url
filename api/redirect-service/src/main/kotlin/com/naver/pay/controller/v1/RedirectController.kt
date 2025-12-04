@@ -1,12 +1,15 @@
 package com.naver.pay.controller.v1
 
 import com.naver.pay.service.RedirectService
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.net.URI
 
 @RestController
 @RequestMapping("v1/urls")
@@ -19,13 +22,19 @@ class RedirectController(
         @PathVariable shortKey: String,
         @RequestHeader("User-Agent", required = false) userAgent: String?,
         @RequestHeader("Referer", required = false) referrer: String?
-    ): ResponseEntity<RedirectUrlResponseDto> {
-        return ResponseEntity.ok(
-            redirectService.getRedirectUrl(
-                shortKey= shortKey,
-                userAgent = userAgent,
-                referrer = referrer
-            )
+    ): ResponseEntity<Void> {
+        val redirectUrl = redirectService.getRedirectUrl(
+            shortKey = shortKey,
+            userAgent = userAgent,
+            referrer = referrer
         )
+
+        val headers = HttpHeaders()
+        headers.location = URI.create(redirectUrl)
+
+        return ResponseEntity
+            .status(HttpStatus.FOUND)
+            .headers(headers)
+            .build()
     }
 }

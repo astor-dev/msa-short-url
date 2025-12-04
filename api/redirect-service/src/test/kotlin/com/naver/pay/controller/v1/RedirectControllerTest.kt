@@ -1,6 +1,5 @@
 package com.naver.pay.controller.v1
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.naver.pay.exception.ExpiredLinkException
 import com.naver.pay.service.RedirectService
 import com.ninjasquad.springmockk.MockkBean
@@ -12,15 +11,13 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
+import java.util.NoSuchElementException
 
 @ApplyExtension(SpringExtension::class)
 @WebMvcTest(RedirectController::class)
 class RedirectControllerTest : BehaviorSpec() {
     @Autowired
     lateinit var mockMvc: MockMvc
-
-    @Autowired
-    lateinit var objectMapper: ObjectMapper
 
     @MockkBean
     lateinit var redirectService: RedirectService
@@ -30,18 +27,16 @@ class RedirectControllerTest : BehaviorSpec() {
             When("유효한 shortKey로 리다이렉트를 요청하면") {
                 val shortKey = "testKey"
                 val originalUrl = "https://naver.com"
-                val responseDto = RedirectUrlResponseDto(originalUrl)
 
-                every { redirectService.getRedirectUrl(shortKey, null, null) } returns responseDto
+                every { redirectService.getRedirectUrl(shortKey, null, null) } returns originalUrl
 
                 val result = mockMvc.get("/v1/urls/$shortKey")
 
-                Then("200 OK와 함께 원본 URL 정보를 반환한다") {
+                Then("302 Found와 함께 Location 헤더에 원본 URL을 담아 반환한다") {
                     result.andExpect {
-                        status { isOk() }
-                        content {
-                            json(objectMapper.writeValueAsString(responseDto))
-                            jsonPath("$.originalUrl") { value(originalUrl) }
+                        status { isFound() }
+                        header {
+                            string("Location", originalUrl)
                         }
                     }
                 }
@@ -52,21 +47,19 @@ class RedirectControllerTest : BehaviorSpec() {
                 val originalUrl = "https://naver.com"
                 val userAgent = "Test-Agent"
                 val referrer = "https://test.com"
-                val responseDto = RedirectUrlResponseDto(originalUrl)
 
-                every { redirectService.getRedirectUrl(shortKey, userAgent, referrer) } returns responseDto
+                every { redirectService.getRedirectUrl(shortKey, userAgent, referrer) } returns originalUrl
 
                 val result = mockMvc.get("/v1/urls/$shortKey") {
                     header("User-Agent", userAgent)
                     header("Referer", referrer)
                 }
 
-                Then("200 OK와 함께 원본 URL 정보를 반환한다") {
+                Then("302 Found와 함께 Location 헤더에 원본 URL을 담아 반환한다") {
                     result.andExpect {
-                        status { isOk() }
-                        content {
-                            json(objectMapper.writeValueAsString(responseDto))
-                            jsonPath("$.originalUrl") { value(originalUrl) }
+                        status { isFound() }
+                        header {
+                            string("Location", originalUrl)
                         }
                     }
                 }
