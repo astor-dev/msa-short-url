@@ -41,7 +41,10 @@ class ShortUrlStoreService(
         updatedShortUrl.shortKey?.let {
             outboxService.storeEvent(Bindings.SHORT_URL_CREATED, ShortUrlCreatedPayload(
                 shortKey = it,
-                originalUrl = updatedShortUrl.originalUrl
+                originalUrl = updatedShortUrl.originalUrl,
+                shortUrl = updatedShortUrl.getShortUrl(),
+                shortUrlCreatedAt = updatedShortUrl.createdAt,
+                shortUrlExpiredAt = updatedShortUrl.expiresAt
             ))
         } ?: throw IllegalStateException("Short key should not be null after generation.")
         return updatedShortUrl

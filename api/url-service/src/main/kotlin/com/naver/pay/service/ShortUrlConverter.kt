@@ -8,7 +8,7 @@ fun ShortUrl.toDto(): UrlResponseDto {
     val key = checkNotNull(this.shortKey) { "shortKey가 설정되어 있지 않습니다." }
     return UrlResponseDto(
         originalUrl = this.originalUrl,
-        shortUrl = "https://short.naver.com/$key",
+        shortUrl = getShortUrl(),
         shortKey = key,
         createdAt = this.createdAt.truncatedTo(ChronoUnit.SECONDS).toString(),
         expiresAt = this.expiresAt.truncatedTo(ChronoUnit.SECONDS).toString(),

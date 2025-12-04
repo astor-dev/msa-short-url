@@ -67,4 +67,9 @@ class ShortUrl private constructor(
             expiresAt = this.expiresAt,
         )
     }
+
+    fun getShortUrl(): String {
+        val key = checkNotNull(this.shortKey) { "shortKey가 설정되어 있지 않습니다." }
+        return "${this.baseUrl}/$key"
+    }
 }
