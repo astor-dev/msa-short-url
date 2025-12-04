@@ -54,7 +54,7 @@ subprojects {
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
         // --- Logging ---
-        runtimeOnly("io.github.oshai:kotlin-logging-jvm:7.0.13")
+        implementation("io.github.oshai:kotlin-logging-jvm:7.0.13")
 
         // --- Testing ---
         testImplementation("io.mockk:mockk:1.14.6")
