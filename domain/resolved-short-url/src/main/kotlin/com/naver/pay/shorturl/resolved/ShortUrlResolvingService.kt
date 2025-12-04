@@ -7,8 +7,8 @@ import java.time.Instant
 
 @Service
 class ShortUrlResolvingService(
-    private val redisTemplate: RedisTemplate<String, String>,
     private val shortUrlSummaryService: ShortUrlSummaryService,
+    private val resolvedShortUrlCacheService: ResolvedShortUrlCacheService,
     private val shortUrlCachableService: ShortUrlCachableService
 ) {
 
@@ -26,7 +26,7 @@ class ShortUrlResolvingService(
 
         val totalClicksCacheKey = "${CacheNames.SHORT_URL_TOTAL_CLICKS}::$shortKey"
         val lastClickedAtCacheKey = "${CacheNames.SHORT_URL_LAST_CLICKED_AT}::$shortKey"
-        val clickSummary = findClickSummaryFromCache(totalClicksCacheKey, lastClickedAtCacheKey)
+        val clickSummary = resolvedShortUrlCacheService.findClickSummary(totalClicksCacheKey, lastClickedAtCacheKey)
             ?: shortUrlSummaryService.findClickSummaryFromPersistence(shortKey)
         val resolvedShortUrl = ResolvedShortUrl(
             shortKey = shortKey,
@@ -39,18 +39,5 @@ class ShortUrlResolvingService(
         return resolvedShortUrl
     }
 
-    private fun findClickSummaryFromCache(totalClicksCacheKey: String, lastClickedAtCacheKey: String): ClickSummary? {
-        if (!redisTemplate.hasKey(totalClicksCacheKey)) {
-            return null
-        }
-        val opsForValue = redisTemplate.opsForValue()
-        val totalClicks = opsForValue.get(totalClicksCacheKey)?.toLong()
-        val lastClickedAt = opsForValue.get(lastClickedAtCacheKey)?.let { Instant.parse(it) }
 
-        return if (totalClicks != null && lastClickedAt != null) {
-            ClickSummary(totalClicks, lastClickedAt)
-        } else {
-            null
-        }
-    }
 }
