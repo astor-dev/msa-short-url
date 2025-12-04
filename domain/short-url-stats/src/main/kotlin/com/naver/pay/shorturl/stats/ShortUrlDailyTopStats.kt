@@ -1,6 +1,6 @@
     package com.naver.pay.shorturl.stats
 
-data class DailyTopStats(
+data class ShortUrlDailyTopStats(
     val date: String,
     val topUrls: List<TopUrlInfo>,
     val topReferrers: List<TopReferrerInfo>,
