@@ -58,6 +58,7 @@ subprojects {
 
         // --- Testing ---
         testImplementation("io.mockk:mockk:1.14.6")
+        testImplementation(platform("org.testcontainers:testcontainers-bom:1.21.3"))
         implementation(platform("io.kotest:kotest-bom:6.0.5"))
         testImplementation("io.kotest:kotest-runner-junit5-jvm")
         testImplementation("io.kotest:kotest-assertions-core-jvm")
