@@ -1,5 +1,6 @@
 package com.naver.pay.shorturl.stats.infrastructure.mongodb
 
+import com.naver.pay.shorturl.stats.TopReferrerInfo
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.index.CompoundIndex
 import org.springframework.data.mongodb.core.mapping.Document
@@ -20,5 +21,13 @@ data class DailyTopReferrersDocument(
         // yyyy-MM-dd
         private fun generateDocumentId(dateString: String, referrer: String) =
             "${dateString}_$referrer"
+    }
+
+    fun toDomain(): TopReferrerInfo {
+        return TopReferrerInfo(
+            rank = this.rank,
+            referrer = this.referrer,
+            totalClicks = this.totalClicks
+        )
     }
 }

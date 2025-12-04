@@ -1,5 +1,6 @@
 package com.naver.pay.shorturl.stats.infrastructure.mongodb
 
+import com.naver.pay.shorturl.stats.TopUrlInfo
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.index.CompoundIndex
 import org.springframework.data.mongodb.core.mapping.Document
@@ -22,5 +23,15 @@ data class DailyTopUrlsDocument(
         // yyyy-MM-dd
         private fun generateDocumentId(dateString: String, shortKey: String) =
             "${dateString}_$shortKey"
+    }
+
+    fun toDomain(): TopUrlInfo {
+        return TopUrlInfo(
+            rank = this.rank,
+            shortKey = this.shortKey,
+            shortUrl = this.shortUrl,
+            originalUrl = this.originalUrl,
+            totalClicks = this.totalClicks
+        )
     }
 }

@@ -1,5 +1,7 @@
 package com.naver.pay.shorturl.stats.infrastructure.mongodb
 
+import com.naver.pay.shorturl.stats.TopByDeviceInfo
+import com.naver.pay.shorturl.stats.TopUrlInfo
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.index.CompoundIndex
 import org.springframework.data.mongodb.core.mapping.Document
@@ -19,5 +21,13 @@ data class DailyTopDevicesDocument(
         // yyyy-MM-dd
         private fun generateDocumentId(dateString: String, deviceType: String) =
             "${dateString}_$deviceType"
+    }
+
+    fun toDomain(topUrls: List<TopUrlInfo>): TopByDeviceInfo {
+        return TopByDeviceInfo(
+            deviceType = this.deviceType,
+            totalClicks = this.totalClicks,
+            topUrls = topUrls
+        )
     }
 }
