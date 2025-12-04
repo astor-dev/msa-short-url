@@ -59,11 +59,11 @@ class ResolvedShortUrlRedisCacheService(
     override fun recordClickAtomically(totalClicksCacheKey: String, lastClickedAtCacheKey: String) {
         val now = Instant.now().toString()
         val keys = listOf(totalClicksCacheKey, lastClickedAtCacheKey)
-        val args = listOf(now, ttlSeconds)
+        val args = arrayOf(now, ttlSeconds.toString())
         redisTemplate.execute(
             clickUpdateScript,
             keys,
-            args,
+            *args,
         )
     }
 
@@ -75,11 +75,11 @@ class ResolvedShortUrlRedisCacheService(
             val initialTotalClicks = clickSummary.totalClicks + 1
             val now = Instant.now().toString()
             val keys = listOf(totalClicksCacheKey, lastClickedAtCacheKey)
-            val args = listOf(initialTotalClicks, now, ttlSeconds)
+            val args = arrayOf(initialTotalClicks.toString(), now, ttlSeconds.toString())
             redisTemplate.execute(
                 clickInitScript,
                 keys,
-                args,
+                *args,
             )
         }
     }
