@@ -64,7 +64,7 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-1:9093,2@controller-2:9093,3@controller-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     volumes:
-      - ./data/controller-1:/var/lib/kafka/data
+      - ./.data/controller-1:/var/lib/kafka/data
     networks:
       - naverpay-network
 
@@ -80,7 +80,7 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-1:9093,2@controller-2:9093,3@controller-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     volumes:
-      - ./data/controller-2:/var/lib/kafka/data
+      - ./.data/controller-2:/var/lib/kafka/data
     networks:
       - naverpay-network
 
@@ -96,7 +96,7 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-1:9093,2@controller-2:9093,3@controller-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     volumes:
-      - ./data/controller-3:/var/lib/kafka/data
+      - ./.data/controller-3:/var/lib/kafka/data
     networks:
       - naverpay-network
 
@@ -121,7 +121,7 @@ services:
       KAFKA_DEFAULT_REPLICATION_FACTOR: 3
       KAFKA_LOG_RETENTION_HOURS: 336
     volumes:
-      - ./data/broker-1:/var/lib/kafka/data
+      - ./.data/broker-1:/var/lib/kafka/data
     depends_on:
       - controller-1
       - controller-2
@@ -150,7 +150,7 @@ services:
       KAFKA_DEFAULT_REPLICATION_FACTOR: 3
       KAFKA_LOG_RETENTION_HOURS: 336
     volumes:
-      - ./data/broker-2:/var/lib/kafka/data
+      - ./.data/broker-2:/var/lib/kafka/data
     depends_on:
       - controller-1
       - controller-2
@@ -179,7 +179,7 @@ services:
       KAFKA_DEFAULT_REPLICATION_FACTOR: 3
       KAFKA_LOG_RETENTION_HOURS: 336
     volumes:
-      - ./data/broker-3:/var/lib/kafka/data
+      - ./.data/broker-3:/var/lib/kafka/data
     depends_on:
       - controller-1
       - controller-2
