@@ -12,10 +12,8 @@ spring:
       host: localhost
       port: 6380
   jpa:
-    properties:
-      hibernate:
-        show_sql: true
-        format_sql: true
+    hibernate:
+      ddl-auto: update
   cloud:
     stream:
       bindings:

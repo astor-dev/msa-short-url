@@ -32,3 +32,6 @@ spring:
           shortUrlCreated-in-0:
             consumer:
               start-offset: latest
+  jpa:
+    hibernate:
+      ddl-auto: update
