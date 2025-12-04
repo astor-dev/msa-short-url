@@ -14,10 +14,17 @@ spring:
     mongodb:
       uri: mongodb://naverpay:externship@localhost:27018/naverpay?authSource=admin
   cloud:
+    function:
+      definition: shortUrlCreated;shortUrlClicked
     stream:
       bindings:
         shortUrlCreated-in-0:
           destination: short_url.created
+          group: short-url.stats-processor
+          consumer:
+            concurrency: 3
+        shortUrlClicked-in-0:
+          destination: short_url.clicked
           group: short-url.stats-processor
           consumer:
             concurrency: 3
@@ -30,6 +37,9 @@ spring:
             key.serializer: org.apache.kafka.common.serialization.StringSerializer
         bindings:
           shortUrlCreated-in-0:
+            consumer:
+              start-offset: earliest
+          shortUrlClicked-in-0:
             consumer:
               start-offset: latest
   jpa:
