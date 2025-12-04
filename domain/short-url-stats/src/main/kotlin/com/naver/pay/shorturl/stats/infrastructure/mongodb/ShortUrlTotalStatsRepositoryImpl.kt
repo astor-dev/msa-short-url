@@ -11,7 +11,7 @@ import java.time.Instant
 class ShortUrlTotalStatsRepositoryImpl(
     private val mongoTemplate: MongoTemplate,
 ) : ShortUrlTotalStatsCustomRepository {
-    override fun recordClickAtomically(shortKey: String, referrer: String, device: String, date: String) {
+    override fun recordClickAtomically(shortKey: String, referrer: String, device: String, date: String, clickedAt: Instant) {
         val increment: Long = 1
         val query = Query.query(Criteria.where("_id").`is`(shortKey))
         val update = Update()
@@ -19,7 +19,7 @@ class ShortUrlTotalStatsRepositoryImpl(
             .inc("byReferrer.$referrer", increment)
             .inc("byDevice.$device", increment)
             .inc("byDate.$date", increment)
-            .set("lastClickedAt", Instant.now())
+            .set("lastClickedAt", clickedAt)
         mongoTemplate.upsert(
             query,
             update,

@@ -4,6 +4,7 @@ import com.naver.pay.shorturl.stats.infrastructure.mongodb.ShortUrlTotalStatsDoc
 import com.naver.pay.shorturl.stats.infrastructure.mongodb.ShortUrlTotalStatsRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
+import java.time.Instant
 
 @Service
 class ShortUrlTotalStatsService(
@@ -18,8 +19,8 @@ class ShortUrlTotalStatsService(
         shortUrlTotalStatsRepository.save(document)
     }
 
-    fun click(shortKey: String, referrer: String, device: String, date: String) {
-        shortUrlTotalStatsRepository.recordClickAtomically(shortKey, referrer, device, date)
+    fun click(shortKey: String, referrer: String, device: String, date: String, clickedAt: Instant) {
+        shortUrlTotalStatsRepository.recordClickAtomically(shortKey, referrer, device, date, clickedAt)
     }
 
     fun findOne(shortKey: String): ShortUrlTotalStatsDocument? {
