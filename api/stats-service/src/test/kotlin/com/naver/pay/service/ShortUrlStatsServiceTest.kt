@@ -9,6 +9,7 @@ import com.naver.pay.controller.v1.ShortUrlStatisticsResponseDto
 import com.naver.pay.shorturl.resolved.ClickSummary
 import com.naver.pay.shorturl.resolved.ResolvedShortUrl
 import com.naver.pay.shorturl.resolved.ResolvedShortUrlCachableService
+import com.naver.pay.shorturl.stats.ShortUrlDailyTopStatsService
 import com.naver.pay.shorturl.stats.ShortUrlMetadata
 import com.naver.pay.shorturl.stats.ShortUrlStatsByDate
 import com.naver.pay.shorturl.stats.ShortUrlStatsByDevice
@@ -31,7 +32,8 @@ import java.util.NoSuchElementException
 class ShortUrlStatsServiceTest : BehaviorSpec({
     val resolvedShortUrlCachableService = mockk<ResolvedShortUrlCachableService>()
     val shortUrlTotalStatsService = mockk<ShortUrlTotalStatsService>()
-    val shortUrlStatsService = ShortUrlStatsService(resolvedShortUrlCachableService, shortUrlTotalStatsService)
+    val shortUrlDailyTopStatsService = mockk<ShortUrlDailyTopStatsService>()
+    val shortUrlStatsService = ShortUrlStatsService(resolvedShortUrlCachableService, shortUrlTotalStatsService, shortUrlDailyTopStatsService)
 
     afterTest {
         clearAllMocks()
