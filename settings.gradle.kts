@@ -19,5 +19,5 @@ include("util:distributed-lock")
 
 include("worker")
 include("worker:outbox-polling-publisher")
-include("worker:short-url-stats-processor")
+include("worker:short-url-stats-consumer")
 include("worker:short-url-stats-batch")

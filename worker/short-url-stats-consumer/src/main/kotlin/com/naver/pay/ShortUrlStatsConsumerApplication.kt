@@ -6,8 +6,8 @@ import org.springframework.boot.runApplication
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
-class ShortUrlStatsProcessorApplication
+class ShortUrlStatsConsumerApplication
 
 fun main(args: Array<String>) {
-    runApplication<ShortUrlStatsProcessorApplication>(*args)
+    runApplication<ShortUrlStatsConsumerApplication>(*args)
 }
