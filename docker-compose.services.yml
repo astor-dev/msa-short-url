@@ -1,0 +1,77 @@
+networks:
+  naverpay-network:
+    name: naverpay-network
+    driver: bridge
+
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: gateway
+    container_name: gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - url-service
+      - redirect-service
+      - stats-service
+    networks:
+      - naverpay-network
+
+  url-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: url-service
+    container_name: url-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - naverpay-network
+
+  redirect-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: redirect-service
+    container_name: redirect-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - naverpay-network
+
+  stats-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: stats-service
+    container_name: stats-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - naverpay-network
+
+  short-url-stats-consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: short-url-stats-consumer
+    container_name: short-url-stats-consumer
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - naverpay-network
+
+  outbox-polling-publisher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: outbox-polling-publisher
+    container_name: outbox-polling-publisher
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - naverpay-network
