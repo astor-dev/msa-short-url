@@ -23,7 +23,7 @@ class ShortUrlTotalStatsService(
         shortUrlTotalStatsRepository.recordClickAtomically(shortKey, referrer, device, date, clickedAt)
     }
 
-    fun findOne(shortKey: String): ShortUrlTotalStatsDocument? {
-        return shortUrlTotalStatsRepository.findByIdOrNull(shortKey)
+    fun findOne(shortKey: String): ShortUrlTotalStats? {
+        return shortUrlTotalStatsRepository.findByIdOrNull(shortKey)?.toDomain()
     }
 }

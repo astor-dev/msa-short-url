@@ -4,9 +4,8 @@ import com.naver.pay.shorturl.resolved.CacheNames
 import com.naver.pay.shorturl.resolved.ClickSummary
 import com.naver.pay.shorturl.resolved.ResolvedShortUrlCacheService
 import com.naver.pay.shorturl.resolved.ShortUrlSummaryService
-import com.naver.pay.shorturl.stats.ShortUrlMetadata
+import com.naver.pay.shorturl.stats.ShortUrlTotalStats
 import com.naver.pay.shorturl.stats.ShortUrlTotalStatsService
-import com.naver.pay.shorturl.stats.infrastructure.mongodb.ShortUrlTotalStatsDocument
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.clearAllMocks
@@ -43,16 +42,19 @@ class ShortUrlSummaryServiceTest : BehaviorSpec({
 
         When("캐시에 클릭 정보가 존재하지 않으면") {
             val now = Instant.now()
-            val statsDocument = ShortUrlTotalStatsDocument(
+            val statsDomain = ShortUrlTotalStats(
                 shortKey = shortKey,
                 totalClicks = 10,
                 lastClickedAt = now,
-                metadata = mockk()
+                metadata = mockk(),
+                byDate = emptyList(),
+                byDevice = emptyList(),
+                byReferrer = emptyList(),
             )
             val expectedClickSummary = ClickSummary(totalClicks = 10, lastClickedAt = now)
 
             every { resolvedShortUrlCacheService.hasKey(totalClicksCacheKey) } returns false
-            every { shortUrlTotalStatsService.findOne(shortKey) } returns statsDocument
+            every { shortUrlTotalStatsService.findOne(shortKey) } returns statsDomain
             every { resolvedShortUrlCacheService.upsertClick(shortKey, totalClicksCacheKey, lastClickedAtCacheKey, expectedClickSummary) } returns Unit
 
             shortUrlSummaryService.incrementClickCount(shortKey)
@@ -68,19 +70,22 @@ class ShortUrlSummaryServiceTest : BehaviorSpec({
     Given("영속성 계층에서 클릭 요약 정보를 조회할 때") {
         When("통계 정보(Document)가 존재하면") {
             val now = Instant.now()
-            val statsDocument = ShortUrlTotalStatsDocument(
+            val statsDomain = ShortUrlTotalStats(
                 shortKey = shortKey,
-                totalClicks = 100,
+                totalClicks = 10,
                 lastClickedAt = now,
-                metadata = mockk()
+                metadata = mockk(),
+                byDate = emptyList(),
+                byDevice = emptyList(),
+                byReferrer = emptyList(),
             )
-            every { shortUrlTotalStatsService.findOne(shortKey) } returns statsDocument
+            every { shortUrlTotalStatsService.findOne(shortKey) } returns statsDomain
 
             val result = shortUrlSummaryService.findClickSummaryFromPersistence(shortKey)
 
             Then("통계 정보를 ClickSummary 객체로 변환하여 반환한다") {
-                result.totalClicks shouldBe statsDocument.totalClicks
-                result.lastClickedAt shouldBe statsDocument.lastClickedAt
+                result.totalClicks shouldBe statsDomain.totalClicks
+                result.lastClickedAt shouldBe statsDomain.lastClickedAt
             }
         }
 
