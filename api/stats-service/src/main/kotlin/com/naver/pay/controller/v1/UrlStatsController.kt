@@ -21,7 +21,18 @@ class UrlStatsController(
         return ResponseEntity
             .status(HttpStatus.OK)
             .body(
-                shortUrlStatsService.findShortUrlState(shortKey)
+                shortUrlStatsService.findShortUrlStateOrThrow(shortKey)
+            )
+    }
+
+    @GetMapping("/{shortKey}/statistics")
+    fun getShortUrlStats(
+        @PathVariable shortKey: String,
+    ): ResponseEntity<ShortUrlStatisticsResponseDto> {
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(
+                shortUrlStatsService.findShortUrlTotalStatsOrThrow(shortKey)
             )
     }
 }

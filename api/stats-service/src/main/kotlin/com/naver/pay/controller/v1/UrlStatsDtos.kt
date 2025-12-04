@@ -13,3 +13,26 @@ data class ClickSummaryResponseDto (
     val totalClicks: Long,
     val lastClickedAt: String?,
 )
+
+data class ShortUrlStatisticsResponseDto (
+    val shortKey: String,
+    val totalClicks: Long,
+    val byDate: List<ShortUrlStatisticsByDateResponseDto>,
+    val byDevice: List<ShortUrlStatisticsByDeviceTypeResponseDto>,
+    val byReferrer: List<ShortUrlStatisticsByReferrerResponseDto>
+)
+
+data class ShortUrlStatisticsByDateResponseDto (
+    val date: String,
+    val clicks: Long,
+)
+
+data class ShortUrlStatisticsByDeviceTypeResponseDto (
+    val deviceType: String,
+    val clicks: Long,
+)
+
+data class ShortUrlStatisticsByReferrerResponseDto (
+    val referrer: String,
+    val clicks: Long,
+)
