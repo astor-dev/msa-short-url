@@ -1,0 +1,47 @@
+server:
+  port: 8091
+
+spring:
+  datasource:
+    url: jdbc:mysql://mysql:3306/naverpay?serverTimezone=Asia/Seoul
+    username: naverpay
+    password: externship
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: redis
+      port: 6379
+    mongodb:
+      uri: mongodb://naverpay:externship@mongodb:27017/naverpay?authSource=admin
+  cloud:
+    function:
+      definition: shortUrlCreated;shortUrlClicked
+    stream:
+      bindings:
+        shortUrlCreated-in-0:
+          destination: short_url.created
+          group: short-url.stats-processor
+          consumer:
+            concurrency: 3
+        shortUrlClicked-in-0:
+          destination: short_url.clicked
+          group: short-url.stats-processor
+          consumer:
+            concurrency: 3
+      kafka:
+        binder:
+          brokers: broker-1:19092, broker-2:19092, broker-3:19092
+          auto-create-topics: false
+          required-acks: 0
+          configuration:
+            key.serializer: org.apache.kafka.common.serialization.StringSerializer
+        bindings:
+          shortUrlCreated-in-0:
+            consumer:
+              start-offset: earliest
+          shortUrlClicked-in-0:
+            consumer:
+              start-offset: latest
+  jpa:
+    hibernate:
+      ddl-auto: update
