@@ -1,5 +1,6 @@
 package com.naver.pay.shorturl.resolved
 
+import com.naver.pay.shorturl.stats.ShortUrlTotalStatsService
 import com.naver.pay.util.DistributedLockExecutor
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.script.DefaultRedisScript
@@ -10,7 +11,8 @@ import java.time.Instant
 @Service
 class ShortUrlSummaryService(
     private val redisTemplate: RedisTemplate<String, String>,
-    private val distributedLockExecutor: DistributedLockExecutor
+    private val distributedLockExecutor: DistributedLockExecutor,
+    private val shortUrlTotalStatsService: ShortUrlTotalStatsService
 ) {
 
     /**
@@ -66,7 +68,13 @@ class ShortUrlSummaryService(
     }
 
     fun findClickSummaryFromPersistence(shortKey: String): ClickSummary {
-        TODO()
+        return shortUrlTotalStatsService.findOne(shortKey)?.let {
+            ClickSummary(
+                totalClicks = it.totalClicks,
+                lastClickedAt = it.lastClickedAt
+            )
+        } ?: ClickSummary()
+
     }
 
     private fun executeFastUpdateScript(totalClicksCacheKey: String, lastClickedAtCacheKey: String) {
