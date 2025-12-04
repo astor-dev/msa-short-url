@@ -5,10 +5,12 @@ import com.naver.pay.shorturl.stats.infrastructure.mongodb.ShortUrlTotalStatsRep
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import java.time.Instant
+import java.time.ZoneId
 
 @Service
 class ShortUrlTotalStatsService(
-    private val shortUrlTotalStatsRepository: ShortUrlTotalStatsRepository
+    private val shortUrlTotalStatsRepository: ShortUrlTotalStatsRepository,
+    private val shortUrlStatsCacheService: ShortUrlStatsCacheService
 ) {
 
     fun createTotalStats(shortKey: String, metadata: ShortUrlMetadata) {
@@ -21,6 +23,7 @@ class ShortUrlTotalStatsService(
 
     fun click(shortKey: String, referrer: String, device: String, date: String, clickedAt: Instant) {
         shortUrlTotalStatsRepository.recordClickAtomically(shortKey, referrer, device, date, clickedAt)
+        shortUrlStatsCacheService.recordClickAtomically(date, shortKey, referrer, device)
     }
 
     fun findOne(shortKey: String): ShortUrlTotalStats? {
