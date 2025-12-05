@@ -238,7 +238,7 @@ services:
       - broker-1
       - broker-2
       - broker-3
-      - outbox-polling-publisher
+      - outbox-worker
     networks:
       - naverpay-network
 
@@ -300,12 +300,12 @@ services:
     networks:
       - naverpay-network
 
-  outbox-polling-publisher:
+  outbox-worker:
     build:
       context: .
       dockerfile: Dockerfile
-      target: outbox-polling-publisher
-    container_name: outbox-polling-publisher
+      target: outbox-worker
+    container_name: outbox-worker
     environment:
       - SPRING_PROFILES_ACTIVE=docker
     restart: on-failure:3
