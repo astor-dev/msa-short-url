@@ -11,6 +11,7 @@ include("short-url:api:redirect-service")
 
 include("short-url-stats")
 include("short-url-stats:batch")
+include("short-url-stats:consumer")
 
 include("api")
 include("api:stats-service")
@@ -21,7 +22,3 @@ include("domain:resolved-short-url")
 include("util")
 include("util:object-mapper")
 include("util:distributed-lock")
-
-
-include("worker")
-include("worker:short-url-stats-consumer")
