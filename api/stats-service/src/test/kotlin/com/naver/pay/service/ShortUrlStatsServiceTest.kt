@@ -8,7 +8,7 @@ import com.naver.pay.controller.v1.ShortUrlStatisticsByReferrerResponseDto
 import com.naver.pay.controller.v1.ShortUrlStatisticsResponseDto
 import com.naver.pay.shorturl.resolved.ClickSummary
 import com.naver.pay.shorturl.resolved.ResolvedShortUrl
-import com.naver.pay.shorturl.resolved.ResolvedShortUrlCachableService
+import com.naver.pay.shorturl.resolved.ShortUrlResolvingService
 import com.naver.pay.shorturl.stats.ShortUrlDailyTopStatsService
 import com.naver.pay.shorturl.stats.ShortUrlMetadata
 import com.naver.pay.shorturl.stats.ShortUrlStatsByDate
@@ -30,10 +30,11 @@ import java.util.NoSuchElementException
 
 
 class ShortUrlStatsServiceTest : BehaviorSpec({
-    val resolvedShortUrlCachableService = mockk<ResolvedShortUrlCachableService>()
+//    val resolvedShortUrlCachableService = mockk<ResolvedShortUrlCachableService>()
+    val shortUrlResolvingService = mockk<ShortUrlResolvingService>()
     val shortUrlTotalStatsService = mockk<ShortUrlTotalStatsService>()
     val shortUrlDailyTopStatsService = mockk<ShortUrlDailyTopStatsService>()
-    val shortUrlStatsService = ShortUrlStatsService(resolvedShortUrlCachableService, shortUrlTotalStatsService, shortUrlDailyTopStatsService)
+    val shortUrlStatsService = ShortUrlStatsService(shortUrlResolvingService, shortUrlTotalStatsService, shortUrlDailyTopStatsService)
 
     afterTest {
         clearAllMocks()
@@ -68,21 +69,19 @@ class ShortUrlStatsServiceTest : BehaviorSpec({
                     )
                 )
 
-                every { resolvedShortUrlCachableService.findResolvedShortUrlOrThrow(shortKey) } returns resolvedShortUrl
+                every { shortUrlResolvingService.resolveShortUrl(shortKey) } returns resolvedShortUrl
 
                 val result = shortUrlStatsService.findShortUrlStateOrThrow(shortKey)
 
                 Then("ResolvedShortUrl의 DTO를 반환한다") {
                     result shouldBe expectedDto
-                    verify(exactly = 1) { resolvedShortUrlCachableService.findResolvedShortUrlOrThrow(shortKey) }
+                    verify(exactly = 1) { shortUrlResolvingService.resolveShortUrl(shortKey) }
                 }
             }
 
             And("존재하지 않는 shortKey가 주어지면") {
                 val errorMessage = "Short URL not found: $shortKey"
-                every { resolvedShortUrlCachableService.findResolvedShortUrlOrThrow(shortKey) } throws NoSuchElementException(
-                    errorMessage
-                )
+                every { shortUrlResolvingService.resolveShortUrl(shortKey) } returns null
 
                 val exception = runCatching {
                     shortUrlStatsService.findShortUrlStateOrThrow(shortKey)
@@ -91,7 +90,7 @@ class ShortUrlStatsServiceTest : BehaviorSpec({
                 Then("NoSuchElementException을 발생시킨다") {
                     exception.shouldBeInstanceOf<NoSuchElementException>()
                     exception.message shouldContain errorMessage
-                    verify(exactly = 1) { resolvedShortUrlCachableService.findResolvedShortUrlOrThrow(shortKey) }
+                    verify(exactly = 1) { shortUrlResolvingService.resolveShortUrl(shortKey) }
                 }
             }
         }
