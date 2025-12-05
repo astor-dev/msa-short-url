@@ -1,7 +1,9 @@
 rootProject.name = "2025-externship-be-astor-dev"
 
 include("gateway")
+
 include("outbox")
+include("outbox:worker")
 
 include("api")
 include("api:url-service")
@@ -19,6 +21,5 @@ include("util:distributed-lock")
 
 
 include("worker")
-include("worker:outbox-polling-publisher")
 include("worker:short-url-stats-consumer")
 include("worker:short-url-stats-batch")
