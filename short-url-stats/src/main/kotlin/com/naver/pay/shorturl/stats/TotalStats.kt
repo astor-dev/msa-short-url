@@ -2,7 +2,7 @@ package com.naver.pay.shorturl.stats
 
 import java.time.Instant
 
-data class ShortUrlTotalStats (
+data class TotalStats (
     val shortKey: String,
     val totalClicks: Long,
     val byDate: List<ShortUrlStatsByDate>,

@@ -1,11 +1,11 @@
 package com.naver.pay.shorturl.resolved
 
-import com.naver.pay.shorturl.stats.ShortUrlTotalStatsService
+import com.naver.pay.shorturl.stats.TotalStatsService
 import org.springframework.stereotype.Service
 
 @Service
 class ShortUrlSummaryService(
-    private val shortUrlTotalStatsService: ShortUrlTotalStatsService,
+    private val totalStatsService: TotalStatsService,
     private val resolvedShortUrlRepository: ResolvedShortUrlRepository
 ) {
 
@@ -27,7 +27,7 @@ class ShortUrlSummaryService(
     }
 
     fun findClickSummaryFromPersistence(shortKey: String): ClickSummary {
-        return shortUrlTotalStatsService.findOne(shortKey)?.let {
+        return totalStatsService.findOne(shortKey)?.let {
             ClickSummary(
                 totalClicks = it.totalClicks,
                 lastClickedAt = it.lastClickedAt

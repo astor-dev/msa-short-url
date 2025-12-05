@@ -1,10 +1,10 @@
-package com.naver.pay.shorturl.stats.infrastructure.mongodb
+package com.naver.pay.shorturl.stats.mongodb
 
 import com.naver.pay.shorturl.stats.ShortUrlMetadata
 import com.naver.pay.shorturl.stats.ShortUrlStatsByDate
 import com.naver.pay.shorturl.stats.ShortUrlStatsByDevice
 import com.naver.pay.shorturl.stats.ShortUrlStatsByReferrer
-import com.naver.pay.shorturl.stats.ShortUrlTotalStats
+import com.naver.pay.shorturl.stats.TotalStats
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.Instant
@@ -21,7 +21,7 @@ class ShortUrlTotalStatsDocument (
     val lastClickedAt: Instant? = null,
     val metadata: ShortUrlMetadata,
 ) {
-    fun toDomain(): ShortUrlTotalStats {
+    fun toDomain(): TotalStats {
         val byDateDomain = this.byDate.map { (date, clicks) ->
             ShortUrlStatsByDate(
                 date = date,
@@ -43,7 +43,7 @@ class ShortUrlTotalStatsDocument (
             )
         }
 
-        return ShortUrlTotalStats(
+        return TotalStats(
             shortKey = this.shortKey,
             totalClicks = this.totalClicks,
             byDate = byDateDomain,

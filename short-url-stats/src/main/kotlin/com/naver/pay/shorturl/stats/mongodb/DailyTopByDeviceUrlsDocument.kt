@@ -1,4 +1,4 @@
-package com.naver.pay.shorturl.stats.infrastructure.mongodb
+package com.naver.pay.shorturl.stats.mongodb
 
 import com.naver.pay.shorturl.stats.TopUrlInfo
 import org.springframework.data.annotation.Id

@@ -4,16 +4,16 @@ import com.naver.pay.controller.DailyTopStatsResponseDto
 import com.naver.pay.controller.ShortUrlStateResponseDto
 import com.naver.pay.controller.ShortUrlStatisticsResponseDto
 import com.naver.pay.shorturl.resolved.ShortUrlResolvingService
-import com.naver.pay.shorturl.stats.ShortUrlDailyTopStatsService
-import com.naver.pay.shorturl.stats.ShortUrlTotalStatsService
+import com.naver.pay.shorturl.stats.DailyTopStatsService
+import com.naver.pay.shorturl.stats.TotalStatsService
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 
 @Service
 class ShortUrlStatsService(
     private val shortUrlResolvingService: ShortUrlResolvingService,
-    private val shortUrlTotalStatsService: ShortUrlTotalStatsService,
-    private val shortUrlDailyTopStatsService: ShortUrlDailyTopStatsService
+    private val totalStatsService: TotalStatsService,
+    private val shortUrlDailyTopStatsService: DailyTopStatsService
 ) {
     fun findShortUrlStateOrThrow(shortKey: String): ShortUrlStateResponseDto {
         return shortUrlResolvingService.resolveShortUrl(shortKey)?.toDto()
@@ -21,7 +21,7 @@ class ShortUrlStatsService(
     }
 
     fun findShortUrlTotalStatsOrThrow(shortKey: String): ShortUrlStatisticsResponseDto {
-        return shortUrlTotalStatsService.findOne(shortKey)?.toDto()
+        return totalStatsService.findOne(shortKey)?.toDto()
             ?: throw NoSuchElementException("Short URL not found: $shortKey")
     }
 

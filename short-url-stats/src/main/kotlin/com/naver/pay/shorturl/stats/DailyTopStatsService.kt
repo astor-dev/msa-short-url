@@ -6,10 +6,9 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @Service
-class ShortUrlDailyTopStatsService(
-    private val shortUrlStatsCacheService: ShortUrlStatsCacheService,
+class DailyTopStatsService(
     private val shortUrlCacheableService: ShortUrlCacheableService,
-    private val shortUrlDailyTopStatsPersistenceService: ShortUrlDailyTopStatsPersistenceService
+    private val dailyTopStatsRepository: DailyTopStatsRepository
 ) {
     /**
      * 단축 Url에 대한 일 단위 Top N 통계를 조회합니다.
@@ -18,18 +17,36 @@ class ShortUrlDailyTopStatsService(
      * @param limit top N에서 N의 상한
      * @return ShortUrlDailyTopStats 일 단위 Top N 통계
      */
-    fun getOne(date: LocalDate, limit: Long): ShortUrlDailyTopStats {
-        val statsFromPersistence =  shortUrlDailyTopStatsPersistenceService.findOne(date, limit)
+    fun getOne(date: LocalDate, limit: Long): DailyTopStats {
+        val statsFromPersistence =  dailyTopStatsRepository.findOne(date, limit)
         if(statsFromPersistence != null) return statsFromPersistence
         val dateString = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-        val dailyStatsVo = shortUrlStatsCacheService.findDailyStatistics(dateString, limit)
-            ?: return ShortUrlDailyTopStats(date = dateString)
+        val dailyStatsVo = dailyTopStatsRepository.findDailyStatsInCache(dateString, limit)
+            ?: return DailyTopStats(date = dateString)
         return resolveTotalStats(dailyStatsVo)
     }
 
+    /**
+     * 클릭 수를 dailyTopStats에 원자적으로 기록합니다.
+     * @param date LocalDate (한국 기준)
+     * @param shortKey 방문한 url의 short Key
+     * @param referrer 헤더로 부터 추출된 referrer
+     * @param device 헤더로 부터 추출된 device
+     */
+    fun recordClickAtomically(
+        date: LocalDate,
+        shortKey: String,
+        referrer: String,
+        device: String
+    ) {
+        return this.dailyTopStatsRepository.recordClickAtomically(date, shortKey, referrer, device)
+    }
 
-
-    fun resolveTotalStats(dailyStatsVo: DailyStatsVo): ShortUrlDailyTopStats {
+    /**
+     * dailyStatsVo를 도메인 클래스로 resolve 합니다.
+     * shortUrl 모듈 의존성. TODO: 비동기 결합
+     */
+    fun resolveTotalStats(dailyStatsVo: DailyStatsVo): DailyTopStats {
         val allUniqueKeys = (
                 dailyStatsVo.topUrls.map { it.key } +
                         dailyStatsVo.topByDevice.flatMap { it.topUrls.map { url -> url.key } }
@@ -71,7 +88,7 @@ class ShortUrlDailyTopStatsService(
                 }
             )
         }
-        return ShortUrlDailyTopStats(
+        return DailyTopStats(
             date = dailyStatsVo.dateKey,
             topUrls = topUrls,
             topReferrers = topReferrers,

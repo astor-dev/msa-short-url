@@ -12,8 +12,8 @@ import com.naver.pay.controller.TopByDeviceUrlResponseDto
 import com.naver.pay.controller.TopReferrerResponseDto
 import com.naver.pay.controller.TopUrlResponseDto
 import com.naver.pay.shorturl.resolved.ResolvedShortUrl
-import com.naver.pay.shorturl.stats.ShortUrlDailyTopStats
-import com.naver.pay.shorturl.stats.ShortUrlTotalStats
+import com.naver.pay.shorturl.stats.DailyTopStats
+import com.naver.pay.shorturl.stats.TotalStats
 import java.time.temporal.ChronoUnit
 
 fun ResolvedShortUrl.toDto(): ShortUrlStateResponseDto {
@@ -30,7 +30,7 @@ fun ResolvedShortUrl.toDto(): ShortUrlStateResponseDto {
     )
 }
 
-fun ShortUrlTotalStats.toDto() : ShortUrlStatisticsResponseDto {
+fun TotalStats.toDto() : ShortUrlStatisticsResponseDto {
     val byDate = this.byDate.map {
         ShortUrlStatisticsByDateResponseDto(
             date = it.date,
@@ -60,7 +60,7 @@ fun ShortUrlTotalStats.toDto() : ShortUrlStatisticsResponseDto {
     )
 }
 
-fun ShortUrlDailyTopStats.toDto(): DailyTopStatsResponseDto {
+fun DailyTopStats.toDto(): DailyTopStatsResponseDto {
     val topUrls = this.topUrls.map {
         TopUrlResponseDto(
             rank = it.rank,

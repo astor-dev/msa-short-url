@@ -1,8 +1,7 @@
 package com.naver.pay.config
 
-import com.naver.pay.shorturl.stats.ShortUrlDailyTopStatsPersistenceService
-import com.naver.pay.shorturl.stats.ShortUrlDailyTopStatsService
-import com.naver.pay.shorturl.stats.ShortUrlStatsCacheService
+import com.naver.pay.shorturl.stats.DailyTopStatsRepository
+import com.naver.pay.shorturl.stats.DailyTopStatsService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.batch.core.Job
 import org.springframework.batch.core.Step
@@ -24,13 +23,11 @@ import java.time.format.DateTimeFormatter
 class DailyTopStatsSyncJobConfig(
     private val jobRepository: JobRepository,
     private val transactionManager: PlatformTransactionManager,
-    private val shortUrlStatsCacheService: ShortUrlStatsCacheService,
-    private val shortUrlDailyTopStatsService: ShortUrlDailyTopStatsService,
-    private val shortUrlDailyTopStatsPersistenceService: ShortUrlDailyTopStatsPersistenceService
+    private val shortUrlDailyTopStatsService: DailyTopStatsService,
+    private val shortUrlDailyTopStatsPersistenceService: DailyTopStatsRepository
 ) {
 
     private val logger = KotlinLogging.logger(DailyTopStatsSyncJobConfig::class.java.name)
-    private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
     // TODO: 날짜별 격리 트랜잭션(Step 2개로 분리)
     // TODO: Chunk 기반 전환
@@ -45,7 +42,7 @@ class DailyTopStatsSyncJobConfig(
     }
 
     @Bean
-    fun dailyTopStatsSyncStep(dailyTopStatsSyncTasklet: org.springframework.batch.core.step.tasklet.Tasklet): Step {
+    fun dailyTopStatsSyncStep(dailyTopStatsSyncTasklet: Tasklet): Step {
         return StepBuilder(STEP_NAME, jobRepository)
             .tasklet(dailyTopStatsSyncTasklet, transactionManager)
             .build()
@@ -62,16 +59,9 @@ class DailyTopStatsSyncJobConfig(
             val yesterday = today.minusDays(1)
 
             listOf(yesterday, today).forEach { date ->
-                val dateKey = date.format(dateFormatter)
-                val statsVo = shortUrlStatsCacheService.findDailyStatistics(dateKey, limit)
-                if (statsVo == null) {
-                    logger.info { "${"Skip sync (cache miss) for date={}, limit={}"} $dateKey $limit" }
-                    return@forEach
-                }
-
-                val dailyTopStats = shortUrlDailyTopStatsService.resolveTotalStats(statsVo)
-                shortUrlDailyTopStatsPersistenceService.save(dailyTopStats)
-                logger.info { "${"Synced daily top stats for date={}, limit={}"} $dateKey $limit" }
+                val dailyTopStats = shortUrlDailyTopStatsService.getOne(date, limit)
+                if (dailyTopStats.topUrls.isNotEmpty()) shortUrlDailyTopStatsPersistenceService.save(dailyTopStats)
+                logger.info { "${"Synced daily top stats for date={}, limit={}"} $date $limit" }
             }
 
             RepeatStatus.FINISHED

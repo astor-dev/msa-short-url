@@ -2,7 +2,8 @@ package com.naver.pay.consumer
 
 import com.naver.pay.shorturl.stream.ShortUrlClickedPayload
 import com.naver.pay.shorturl.resolved.ShortUrlSummaryService
-import com.naver.pay.shorturl.stats.ShortUrlTotalStatsService
+import com.naver.pay.shorturl.stats.DailyTopStatsService
+import com.naver.pay.shorturl.stats.TotalStatsService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.basjes.parse.useragent.UserAgentAnalyzer
 import org.springframework.stereotype.Component
@@ -12,7 +13,8 @@ import java.time.ZoneId
 
 @Component
 class ShortUrlClicked (
-    private val shortUrlTotalStatsService: ShortUrlTotalStatsService,
+    private val totalStatsService: TotalStatsService,
+    private val dailyTopStatsService: DailyTopStatsService,
     private val shortUrlSummaryService: ShortUrlSummaryService,
     private val userAgentAnalyzer: UserAgentAnalyzer
 ): Consumer<Message<ShortUrlClickedPayload>> {
@@ -26,17 +28,22 @@ class ShortUrlClicked (
         val payload = message.payload
         val referrer = payload.referrer
         val device = parseDeviceType(payload.userAgent)
-        val dateString = payload.clickedAt
+        val krDate = payload.clickedAt
             .atZone(ZoneId.of("Asia/Seoul"))
             .toLocalDate()
-            .toString()
         shortUrlSummaryService.incrementClickCount(payload.shortKey)
-        shortUrlTotalStatsService.click(
+        totalStatsService.recordClickAtomically(
             shortKey = payload.shortKey,
             referrer = referrer,
             device = device,
-            date = dateString,
+            date = krDate,
             clickedAt = payload.clickedAt
+        )
+        dailyTopStatsService.recordClickAtomically(
+            date = krDate,
+            shortKey = payload.shortKey,
+            referrer = referrer,
+            device = device
         )
     }
 

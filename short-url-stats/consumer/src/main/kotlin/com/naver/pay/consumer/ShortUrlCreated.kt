@@ -2,7 +2,7 @@ package com.naver.pay.consumer
 
 import com.naver.pay.shorturl.stream.ShortUrlCreatedPayload
 import com.naver.pay.shorturl.stats.ShortUrlMetadata
-import com.naver.pay.shorturl.stats.ShortUrlTotalStatsService
+import com.naver.pay.shorturl.stats.TotalStatsService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.messaging.Message
 import org.springframework.stereotype.Component
@@ -10,7 +10,7 @@ import java.util.function.Consumer
 
 @Component
 class ShortUrlCreated(
-    private val shortUrlTotalStatsService: ShortUrlTotalStatsService
+    private val totalStatsService: TotalStatsService
 ): Consumer<Message<ShortUrlCreatedPayload>> {
     private val logger = KotlinLogging.logger(ShortUrlCreated::class.java.name)
 
@@ -28,7 +28,7 @@ class ShortUrlCreated(
         )
 
         // NOTE: 재처리 Safe하게 처리
-        shortUrlTotalStatsService.createTotalStatsIfNotExists(
+        totalStatsService.createTotalStatsIfNotExists(
             shortKey = payload.shortKey,
             metadata = metadata,
         )

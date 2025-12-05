@@ -9,13 +9,13 @@ import com.naver.pay.controller.ShortUrlStatisticsResponseDto
 import com.naver.pay.shorturl.resolved.ClickSummary
 import com.naver.pay.shorturl.resolved.ResolvedShortUrl
 import com.naver.pay.shorturl.resolved.ShortUrlResolvingService
-import com.naver.pay.shorturl.stats.ShortUrlDailyTopStatsService
+import com.naver.pay.shorturl.stats.DailyTopStatsService
 import com.naver.pay.shorturl.stats.ShortUrlMetadata
 import com.naver.pay.shorturl.stats.ShortUrlStatsByDate
 import com.naver.pay.shorturl.stats.ShortUrlStatsByDevice
 import com.naver.pay.shorturl.stats.ShortUrlStatsByReferrer
-import com.naver.pay.shorturl.stats.ShortUrlTotalStats
-import com.naver.pay.shorturl.stats.ShortUrlTotalStatsService
+import com.naver.pay.shorturl.stats.TotalStats
+import com.naver.pay.shorturl.stats.TotalStatsService
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -32,9 +32,9 @@ import java.util.NoSuchElementException
 class ShortUrlStatsServiceTest : BehaviorSpec({
 //    val resolvedShortUrlCachableService = mockk<ResolvedShortUrlCachableService>()
     val shortUrlResolvingService = mockk<ShortUrlResolvingService>()
-    val shortUrlTotalStatsService = mockk<ShortUrlTotalStatsService>()
-    val shortUrlDailyTopStatsService = mockk<ShortUrlDailyTopStatsService>()
-    val shortUrlStatsService = ShortUrlStatsService(shortUrlResolvingService, shortUrlTotalStatsService, shortUrlDailyTopStatsService)
+    val totalStatsService = mockk<TotalStatsService>()
+    val shortUrlDailyTopStatsService = mockk<DailyTopStatsService>()
+    val shortUrlStatsService = ShortUrlStatsService(shortUrlResolvingService, totalStatsService, shortUrlDailyTopStatsService)
 
     afterTest {
         clearAllMocks()
@@ -97,7 +97,7 @@ class ShortUrlStatsServiceTest : BehaviorSpec({
 
         When("findShortUrlTotalStatsOrThrow 호출 시") {
             And("통계 정보가 존재하는 shortKey가 주어지면") {
-                val totalStats = ShortUrlTotalStats(
+                val totalStats = TotalStats(
                     shortKey = shortKey,
                     totalClicks = 1000L,
                     byDate = listOf(ShortUrlStatsByDate("2025-12-04", 500L)),
@@ -119,18 +119,18 @@ class ShortUrlStatsServiceTest : BehaviorSpec({
                     byReferrer = listOf(ShortUrlStatisticsByReferrerResponseDto("google.com", 200L))
                 )
 
-                every { shortUrlTotalStatsService.findOne(shortKey) } returns totalStats
+                every { totalStatsService.findOne(shortKey) } returns totalStats
 
                 val result = shortUrlStatsService.findShortUrlTotalStatsOrThrow(shortKey)
 
                 Then("ShortUrlTotalStats의 DTO를 반환한다") {
                     result shouldBe expectedDto
-                    verify(exactly = 1) { shortUrlTotalStatsService.findOne(shortKey) }
+                    verify(exactly = 1) { totalStatsService.findOne(shortKey) }
                 }
             }
 
             And("통계 정보가 존재하지 않는 shortKey가 주어지면") {
-                every { shortUrlTotalStatsService.findOne(shortKey) } returns null
+                every { totalStatsService.findOne(shortKey) } returns null
 
                 val exception = runCatching {
                     shortUrlStatsService.findShortUrlTotalStatsOrThrow(shortKey)
@@ -139,7 +139,7 @@ class ShortUrlStatsServiceTest : BehaviorSpec({
                 Then("NoSuchElementException을 발생시킨다") {
                     exception.shouldBeInstanceOf<NoSuchElementException>()
                     exception.message shouldContain "Short URL not found: $shortKey"
-                    verify(exactly = 1) { shortUrlTotalStatsService.findOne(shortKey) }
+                    verify(exactly = 1) { totalStatsService.findOne(shortKey) }
                 }
             }
         }
