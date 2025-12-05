@@ -2,7 +2,7 @@ package com.naver.pay.service
 
 import com.naver.pay.exception.ExpiredLinkException
 import com.naver.pay.shorturl.ShortUrl
-import com.naver.pay.shorturl.ShortUrlCachableService
+import com.naver.pay.shorturl.ShortUrlCacheableService
 import com.naver.pay.shorturl.ShortUrlClickedPayload
 import com.naver.pay.shorturl.infrastructure.stream.ShortUrlEventProducer
 import io.kotest.core.spec.style.BehaviorSpec
@@ -17,14 +17,14 @@ import java.util.NoSuchElementException
 
 class RedirectServiceTest : BehaviorSpec({
 
-    val shortUrlCachableService = mockk<ShortUrlCachableService>()
+    val shortUrlCacheableService = mockk<ShortUrlCacheableService>()
     val shortUrlEventProducer = mockk<ShortUrlEventProducer>()
 
-    val redirectService = RedirectService(shortUrlCachableService, shortUrlEventProducer)
+    val redirectService = RedirectService(shortUrlCacheableService, shortUrlEventProducer)
 
     beforeEach {
         clearMocks(
-            shortUrlCachableService,
+            shortUrlCacheableService,
             shortUrlEventProducer,
             answers = false,
             recordedCalls = true
@@ -47,7 +47,7 @@ class RedirectServiceTest : BehaviorSpec({
                 expiresAt = now.plusSeconds(60 * 60)
             )
 
-            every { shortUrlCachableService.findShortUrlByShortKeyOrThrow(shortKey) } returns unexpiredShortUrl
+            every { shortUrlCacheableService.findShortUrlByShortKeyOrThrow(shortKey) } returns unexpiredShortUrl
             every { shortUrlEventProducer.publishUrlClicked(any(), any()) } returns Unit
 
 
@@ -90,7 +90,7 @@ class RedirectServiceTest : BehaviorSpec({
                 createdAt = now.minusSeconds(60 * 60 * 2),
                 expiresAt = now.minusSeconds(60 * 60)
             )
-            every { shortUrlCachableService.findShortUrlByShortKeyOrThrow(shortKey) } returns expiredShortUrl
+            every { shortUrlCacheableService.findShortUrlByShortKeyOrThrow(shortKey) } returns expiredShortUrl
 
             Then("ExpiredLinkException을 던져야 한다") {
                 shouldThrow<ExpiredLinkException> {
@@ -107,7 +107,7 @@ class RedirectServiceTest : BehaviorSpec({
         }
 
         When("존재하지 않는 shortKey가 주어지면") {
-            every { shortUrlCachableService.findShortUrlByShortKeyOrThrow(any()) } throws NoSuchElementException("Short URL not found")
+            every { shortUrlCacheableService.findShortUrlByShortKeyOrThrow(any()) } throws NoSuchElementException("Short URL not found")
 
             Then("NoSuchElementException을 던져야 한다") {
                 shouldThrow<NoSuchElementException> {

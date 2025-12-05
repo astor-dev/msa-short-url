@@ -1,15 +1,13 @@
 package com.naver.pay.shorturl.resolved
 
-import com.naver.pay.shorturl.ShortUrlCachableService
-import org.springframework.data.redis.core.RedisTemplate
+import com.naver.pay.shorturl.ShortUrlCacheableService
 import org.springframework.stereotype.Service
-import java.time.Instant
 
 @Service
 class ShortUrlResolvingService(
     private val shortUrlSummaryService: ShortUrlSummaryService,
     private val resolvedShortUrlCacheService: ResolvedShortUrlCacheService,
-    private val shortUrlCachableService: ShortUrlCachableService
+    private val shortUrlCacheableService: ShortUrlCacheableService
 ) {
 
     /**
@@ -19,7 +17,7 @@ class ShortUrlResolvingService(
      */
     fun resolveShortUrl(shortKey: String): ResolvedShortUrl? {
         val shortUrl = try {
-            shortUrlCachableService.findShortUrlByShortKeyOrThrow(shortKey)
+            shortUrlCacheableService.findShortUrlByShortKeyOrThrow(shortKey)
         } catch (_: NoSuchElementException) {
             return null
         }

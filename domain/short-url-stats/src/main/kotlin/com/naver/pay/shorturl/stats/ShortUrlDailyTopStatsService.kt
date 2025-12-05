@@ -1,6 +1,6 @@
 package com.naver.pay.shorturl.stats
 
-import com.naver.pay.shorturl.ShortUrlCachableService
+import com.naver.pay.shorturl.ShortUrlCacheableService
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -8,7 +8,7 @@ import java.time.format.DateTimeFormatter
 @Service
 class ShortUrlDailyTopStatsService(
     private val shortUrlStatsCacheService: ShortUrlStatsCacheService,
-    private val shortUrlCachableService: ShortUrlCachableService,
+    private val shortUrlCacheableService: ShortUrlCacheableService,
     private val shortUrlDailyTopStatsPersistenceService: ShortUrlDailyTopStatsPersistenceService
 ) {
     /**
@@ -36,7 +36,7 @@ class ShortUrlDailyTopStatsService(
                 ).toSet()
         // TODO: In 활용 조회로 최적화
         val shortUrlMap = allUniqueKeys.associateWith { key ->
-            shortUrlCachableService.findShortUrlByShortKeyOrThrow(key)
+            shortUrlCacheableService.findShortUrlByShortKeyOrThrow(key)
         }
 
         fun mapToTopUrlInfo(rank: Int, keyCount: KeyCountVo): TopUrlInfo {

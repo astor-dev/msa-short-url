@@ -2,7 +2,7 @@ package com.naver.pay.service
 
 import com.naver.pay.controller.v1.UrlResponseDto
 import com.naver.pay.shorturl.CacheNames
-import com.naver.pay.shorturl.ShortUrlCachableService
+import com.naver.pay.shorturl.ShortUrlCacheableService
 import com.naver.pay.shorturl.ShortUrlStoreService
 import com.naver.pay.util.DistributedLockExecutor
 import org.springframework.stereotype.Service
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service
 @Service
 class ShortUrlService(
     private val shortUrlStoreService: ShortUrlStoreService,
-    private val shortUrlCachableService: ShortUrlCachableService,
+    private val shortUrlCacheableService: ShortUrlCacheableService,
     private val distributedLockExecutor: DistributedLockExecutor
 ) {
 
@@ -23,7 +23,7 @@ class ShortUrlService(
             key = originalUrl
         ) {
             try {
-                shortUrlCachableService.findShortUrlByOriginalUrlOrThrow(originalUrl).toDto()
+                shortUrlCacheableService.findShortUrlByOriginalUrlOrThrow(originalUrl).toDto()
             } catch (_: NoSuchElementException) {
                 val shortUrl = shortUrlStoreService.createShortUrl(
                     baseUrl = BASE_URL,

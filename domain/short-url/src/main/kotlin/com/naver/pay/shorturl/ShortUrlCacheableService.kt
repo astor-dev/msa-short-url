@@ -7,7 +7,7 @@ import java.time.Duration
 import java.util.concurrent.ThreadLocalRandom
 
 @Service
-class ShortUrlCachableService(
+class ShortUrlCacheableService(
     private val shortUrlRepository: ShortUrlRepository,
     private val shortUrlCacheService: ShortUrlCacheService,
 ) {

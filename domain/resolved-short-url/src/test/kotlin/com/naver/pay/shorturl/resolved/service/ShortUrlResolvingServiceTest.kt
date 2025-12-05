@@ -1,7 +1,7 @@
 package com.naver.pay.shorturl.resolved.service
 
 import com.naver.pay.shorturl.ShortUrl
-import com.naver.pay.shorturl.ShortUrlCachableService
+import com.naver.pay.shorturl.ShortUrlCacheableService
 import com.naver.pay.shorturl.resolved.CacheNames
 import com.naver.pay.shorturl.resolved.ClickSummary
 import com.naver.pay.shorturl.resolved.ResolvedShortUrlCacheService
@@ -18,11 +18,11 @@ import java.time.Instant
 class ShortUrlResolvingServiceTest : BehaviorSpec({
     val shortUrlSummaryService = mockk<ShortUrlSummaryService>()
     val resolvedShortUrlCacheService = mockk<ResolvedShortUrlCacheService>()
-    val shortUrlCachableService = mockk<ShortUrlCachableService>()
+    val shortUrlCacheableService = mockk<ShortUrlCacheableService>()
     val shortUrlResolvingService = ShortUrlResolvingService(
         shortUrlSummaryService,
         resolvedShortUrlCacheService,
-        shortUrlCachableService
+        shortUrlCacheableService
     )
 
     val shortKey = "testKey"
@@ -43,7 +43,7 @@ class ShortUrlResolvingServiceTest : BehaviorSpec({
     Given("단축 URL 해석(resolve) 요청이 주어졌을 때") {
         When("유효한 단축 키이고 캐시에 클릭 정보가 존재하면") {
             val clickSummaryFromCache = ClickSummary(10, Instant.now())
-            every { shortUrlCachableService.findShortUrlByShortKeyOrThrow(shortKey) } returns shortUrl
+            every { shortUrlCacheableService.findShortUrlByShortKeyOrThrow(shortKey) } returns shortUrl
             every { resolvedShortUrlCacheService.findClickSummary(totalClicksCacheKey, lastClickedAtCacheKey) } returns clickSummaryFromCache
 
             val result = shortUrlResolvingService.resolveShortUrl(shortKey)
@@ -59,7 +59,7 @@ class ShortUrlResolvingServiceTest : BehaviorSpec({
 
         When("유효한 단축 키이고 캐시에 클릭 정보가 없으면") {
             val clickSummaryFromDb = ClickSummary(5, Instant.now())
-            every { shortUrlCachableService.findShortUrlByShortKeyOrThrow(shortKey) } returns shortUrl
+            every { shortUrlCacheableService.findShortUrlByShortKeyOrThrow(shortKey) } returns shortUrl
             every { resolvedShortUrlCacheService.findClickSummary(totalClicksCacheKey, lastClickedAtCacheKey) } returns null
             every { shortUrlSummaryService.findClickSummaryFromPersistence(shortKey) } returns clickSummaryFromDb
 
@@ -75,7 +75,7 @@ class ShortUrlResolvingServiceTest : BehaviorSpec({
         }
 
         When("존재하지 않는 단축 키이면") {
-            every { shortUrlCachableService.findShortUrlByShortKeyOrThrow(shortKey) } throws NoSuchElementException()
+            every { shortUrlCacheableService.findShortUrlByShortKeyOrThrow(shortKey) } throws NoSuchElementException()
 
             val result = shortUrlResolvingService.resolveShortUrl(shortKey)
 

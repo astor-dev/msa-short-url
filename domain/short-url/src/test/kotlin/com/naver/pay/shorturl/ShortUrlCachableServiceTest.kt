@@ -19,13 +19,13 @@ class ShortUrlCachableServiceTest : BehaviorSpec({
 
     val shortUrlRepository = mockk<ShortUrlRepository>()
     val shortUrlCacheService = mockk<ShortUrlCacheService>()
-    val shortUrlCachableService = ShortUrlCachableService(shortUrlRepository, shortUrlCacheService)
+    val shortUrlCacheableService = ShortUrlCacheableService(shortUrlRepository, shortUrlCacheService)
 
     afterTest {
         clearAllMocks()
     }
 
-    Given("ShortUrlCachableService가 주어졌을 때") {
+    Given("ShortUrlCacheableService가 주어졌을 때") {
         val shortKey = "testKey"
         val originalUrl = "https://naver.com"
         val baseUrl = "http://localhost"
@@ -54,7 +54,7 @@ class ShortUrlCachableServiceTest : BehaviorSpec({
             And("캐시에 ShortUrl이 존재하는 경우") {
                 every { shortUrlCacheService.findShortUrlByShortKey(shortKey) } returns shortUrlDomain
 
-                val result = shortUrlCachableService.findShortUrlByShortKeyOrThrow(shortKey)
+                val result = shortUrlCacheableService.findShortUrlByShortKeyOrThrow(shortKey)
 
                 Then("캐시된 ShortUrl을 반환해야 한다") {
                     result.id shouldBe shortUrlDomain.id
@@ -69,7 +69,7 @@ class ShortUrlCachableServiceTest : BehaviorSpec({
                 every { shortUrlRepository.findByShortKey(shortKey) } returns Optional.of(shortUrlEntity)
                 every { shortUrlCacheService.cacheShortUrlByShortKey(any(), any()) } returns Unit
 
-                val result = shortUrlCachableService.findShortUrlByShortKeyOrThrow(shortKey)
+                val result = shortUrlCacheableService.findShortUrlByShortKeyOrThrow(shortKey)
 
                 Then("DB에서 조회 후 캐시에 저장하고 ShortUrl을 반환해야 한다") {
                     result.id shouldBe shortUrlDomain.id
@@ -85,7 +85,7 @@ class ShortUrlCachableServiceTest : BehaviorSpec({
 
                 Then("NoSuchElementException을 발생시켜야 한다") {
                     val exception = runCatching {
-                        shortUrlCachableService.findShortUrlByShortKeyOrThrow(shortKey)
+                        shortUrlCacheableService.findShortUrlByShortKeyOrThrow(shortKey)
                     }.exceptionOrNull()
 
                     exception.shouldNotBeNull()
@@ -102,7 +102,7 @@ class ShortUrlCachableServiceTest : BehaviorSpec({
             And("DB에 ShortUrl이 존재하는 경우") {
                 every { shortUrlRepository.findByOriginalUrl(originalUrl) } returns Optional.of(shortUrlEntity)
 
-                val result = shortUrlCachableService.findShortUrlByOriginalUrlOrThrow(originalUrl)
+                val result = shortUrlCacheableService.findShortUrlByOriginalUrlOrThrow(originalUrl)
 
                 Then("DB에서 조회한 ShortUrl을 반환해야 한다") {
                     result.id shouldBe shortUrlDomain.id
@@ -115,7 +115,7 @@ class ShortUrlCachableServiceTest : BehaviorSpec({
 
                 Then("NoSuchElementException을 발생시켜야 한다") {
                     val exception = runCatching {
-                        shortUrlCachableService.findShortUrlByOriginalUrlOrThrow(originalUrl)
+                        shortUrlCacheableService.findShortUrlByOriginalUrlOrThrow(originalUrl)
                     }.exceptionOrNull()
 
                     exception.shouldNotBeNull()

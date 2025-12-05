@@ -1,7 +1,7 @@
 package com.naver.pay.service
 
 import com.naver.pay.exception.ExpiredLinkException
-import com.naver.pay.shorturl.ShortUrlCachableService
+import com.naver.pay.shorturl.ShortUrlCacheableService
 import com.naver.pay.shorturl.ShortUrlClickedPayload
 import com.naver.pay.shorturl.infrastructure.stream.ShortUrlEventProducer
 import org.springframework.stereotype.Service
@@ -10,7 +10,7 @@ import java.time.Instant
 
 @Service
 class RedirectService(
-    private val shortUrlCachableService: ShortUrlCachableService,
+    private val shortUrlCacheableService: ShortUrlCacheableService,
     private val shortUrlEventProducer: ShortUrlEventProducer
 ) {
 
@@ -22,7 +22,7 @@ class RedirectService(
      * @return String 원본 URL
      */
     fun getRedirectUrlOrThrow(shortKey: String, userAgent: String?, referrer: String?): String {
-        val shortUrl = shortUrlCachableService.findShortUrlByShortKeyOrThrow(shortKey)
+        val shortUrl = shortUrlCacheableService.findShortUrlByShortKeyOrThrow(shortKey)
         if (shortUrl.expiresAt <= Instant.now()) {
             throw ExpiredLinkException(shortUrl.originalUrl)
         }
