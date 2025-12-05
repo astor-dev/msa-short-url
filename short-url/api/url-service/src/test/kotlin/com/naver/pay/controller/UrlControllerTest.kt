@@ -1,4 +1,4 @@
-package com.naver.pay.controller.v1
+package com.naver.pay.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.naver.pay.service.ShortUrlService

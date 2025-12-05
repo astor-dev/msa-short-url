@@ -1,16 +1,16 @@
 package com.naver.pay.service
 
-import com.naver.pay.controller.v1.ClickSummaryResponseDto
-import com.naver.pay.controller.v1.DailyTopStatsResponseDto
-import com.naver.pay.controller.v1.ShortUrlStateResponseDto
-import com.naver.pay.controller.v1.ShortUrlStatisticsByDateResponseDto
-import com.naver.pay.controller.v1.ShortUrlStatisticsByDeviceTypeResponseDto
-import com.naver.pay.controller.v1.ShortUrlStatisticsByReferrerResponseDto
-import com.naver.pay.controller.v1.ShortUrlStatisticsResponseDto
-import com.naver.pay.controller.v1.TopByDeviceResponseDto
-import com.naver.pay.controller.v1.TopByDeviceUrlResponseDto
-import com.naver.pay.controller.v1.TopReferrerResponseDto
-import com.naver.pay.controller.v1.TopUrlResponseDto
+import com.naver.pay.controller.ClickSummaryResponseDto
+import com.naver.pay.controller.DailyTopStatsResponseDto
+import com.naver.pay.controller.ShortUrlStateResponseDto
+import com.naver.pay.controller.ShortUrlStatisticsByDateResponseDto
+import com.naver.pay.controller.ShortUrlStatisticsByDeviceTypeResponseDto
+import com.naver.pay.controller.ShortUrlStatisticsByReferrerResponseDto
+import com.naver.pay.controller.ShortUrlStatisticsResponseDto
+import com.naver.pay.controller.TopByDeviceResponseDto
+import com.naver.pay.controller.TopByDeviceUrlResponseDto
+import com.naver.pay.controller.TopReferrerResponseDto
+import com.naver.pay.controller.TopUrlResponseDto
 import com.naver.pay.shorturl.resolved.ResolvedShortUrl
 import com.naver.pay.shorturl.stats.ShortUrlDailyTopStats
 import com.naver.pay.shorturl.stats.ShortUrlTotalStats

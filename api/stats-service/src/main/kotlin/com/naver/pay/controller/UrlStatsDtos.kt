@@ -1,4 +1,4 @@
-package com.naver.pay.controller.v1
+package com.naver.pay.controller
 
 data class ShortUrlStateResponseDto (
     val shortKey: String,

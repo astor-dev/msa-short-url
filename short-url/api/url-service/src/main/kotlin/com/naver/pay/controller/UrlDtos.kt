@@ -1,4 +1,4 @@
-package com.naver.pay.controller.v1
+package com.naver.pay.controller
 
 import jakarta.validation.constraints.Min
 import org.hibernate.validator.constraints.URL

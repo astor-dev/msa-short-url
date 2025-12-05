@@ -1,8 +1,8 @@
 package com.naver.pay.service
 
-import com.naver.pay.controller.v1.DailyTopStatsResponseDto
-import com.naver.pay.controller.v1.ShortUrlStateResponseDto
-import com.naver.pay.controller.v1.ShortUrlStatisticsResponseDto
+import com.naver.pay.controller.DailyTopStatsResponseDto
+import com.naver.pay.controller.ShortUrlStateResponseDto
+import com.naver.pay.controller.ShortUrlStatisticsResponseDto
 import com.naver.pay.shorturl.resolved.ShortUrlResolvingService
 import com.naver.pay.shorturl.stats.ShortUrlDailyTopStatsService
 import com.naver.pay.shorturl.stats.ShortUrlTotalStatsService

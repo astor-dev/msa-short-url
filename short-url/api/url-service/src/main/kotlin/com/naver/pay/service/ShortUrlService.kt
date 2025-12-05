@@ -1,6 +1,6 @@
 package com.naver.pay.service
 
-import com.naver.pay.controller.v1.UrlResponseDto
+import com.naver.pay.controller.UrlResponseDto
 import com.naver.pay.shorturl.CacheNames
 import com.naver.pay.shorturl.ShortUrlCacheableService
 import com.naver.pay.shorturl.ShortUrlRepository

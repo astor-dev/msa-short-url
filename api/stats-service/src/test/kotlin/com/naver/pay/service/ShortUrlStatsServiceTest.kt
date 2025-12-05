@@ -1,11 +1,11 @@
 package com.naver.pay.service
 
-import com.naver.pay.controller.v1.ClickSummaryResponseDto
-import com.naver.pay.controller.v1.ShortUrlStateResponseDto
-import com.naver.pay.controller.v1.ShortUrlStatisticsByDateResponseDto
-import com.naver.pay.controller.v1.ShortUrlStatisticsByDeviceTypeResponseDto
-import com.naver.pay.controller.v1.ShortUrlStatisticsByReferrerResponseDto
-import com.naver.pay.controller.v1.ShortUrlStatisticsResponseDto
+import com.naver.pay.controller.ClickSummaryResponseDto
+import com.naver.pay.controller.ShortUrlStateResponseDto
+import com.naver.pay.controller.ShortUrlStatisticsByDateResponseDto
+import com.naver.pay.controller.ShortUrlStatisticsByDeviceTypeResponseDto
+import com.naver.pay.controller.ShortUrlStatisticsByReferrerResponseDto
+import com.naver.pay.controller.ShortUrlStatisticsResponseDto
 import com.naver.pay.shorturl.resolved.ClickSummary
 import com.naver.pay.shorturl.resolved.ResolvedShortUrl
 import com.naver.pay.shorturl.resolved.ShortUrlResolvingService

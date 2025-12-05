@@ -6,10 +6,10 @@ include("outbox")
 include("outbox:worker")
 
 include("short-url")
+include("short-url:api:url-service")
 
 
 include("api")
-include("api:url-service")
 include("api:redirect-service")
 include("api:stats-service")
 
@@ -25,3 +25,5 @@ include("util:distributed-lock")
 include("worker")
 include("worker:short-url-stats-consumer")
 include("worker:short-url-stats-batch")
+
+include("short-url:api")

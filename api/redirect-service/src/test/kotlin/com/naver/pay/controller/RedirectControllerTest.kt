@@ -1,4 +1,4 @@
-package com.naver.pay.controller.v1
+package com.naver.pay.controller
 
 import com.naver.pay.exception.ExpiredLinkException
 import com.naver.pay.service.RedirectService
