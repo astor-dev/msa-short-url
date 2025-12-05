@@ -1,11 +1,12 @@
 package com.naver.pay.shorturl.stats
 
+import com.mongodb.DuplicateKeyException
 import com.naver.pay.shorturl.stats.infrastructure.mongodb.ShortUrlTotalStatsDocument
 import com.naver.pay.shorturl.stats.infrastructure.mongodb.ShortUrlTotalStatsRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
-import java.time.ZoneId
 
 @Service
 class ShortUrlTotalStatsService(
@@ -13,12 +14,17 @@ class ShortUrlTotalStatsService(
     private val shortUrlStatsCacheService: ShortUrlStatsCacheService
 ) {
 
-    fun createTotalStats(shortKey: String, metadata: ShortUrlMetadata) {
+    @Transactional
+    fun createTotalStatsIfNotExists(shortKey: String, metadata: ShortUrlMetadata) {
         val document = ShortUrlTotalStatsDocument(
             shortKey = shortKey,
             metadata = metadata
         )
-        shortUrlTotalStatsRepository.save(document)
+        try {
+            shortUrlTotalStatsRepository.insert(document)
+        } catch (e: DuplicateKeyException) {
+            return
+        }
     }
 
     fun click(shortKey: String, referrer: String, device: String, date: String, clickedAt: Instant) {

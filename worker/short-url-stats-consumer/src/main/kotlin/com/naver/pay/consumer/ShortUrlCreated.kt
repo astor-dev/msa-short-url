@@ -27,7 +27,8 @@ class ShortUrlCreated(
             shortUrlExpiredAt = payload.shortUrlExpiredAt
         )
 
-        shortUrlTotalStatsService.createTotalStats(
+        // NOTE: 재처리 Safe하게 처리
+        shortUrlTotalStatsService.createTotalStatsIfNotExists(
             shortKey = payload.shortKey,
             metadata = metadata,
         )
