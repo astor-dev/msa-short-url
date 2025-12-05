@@ -42,7 +42,7 @@ class ShortUrlStoreService(
             outboxService.storeEvent(Bindings.SHORT_URL_CREATED, ShortUrlCreatedPayload(
                 shortKey = it,
                 originalUrl = updatedShortUrl.originalUrl,
-                shortUrl = updatedShortUrl.getShortUrl(),
+                shortUrl = updatedShortUrl.generateShortUrlOrThrow(),
                 shortUrlCreatedAt = updatedShortUrl.createdAt,
                 shortUrlExpiredAt = updatedShortUrl.expiresAt
             ))

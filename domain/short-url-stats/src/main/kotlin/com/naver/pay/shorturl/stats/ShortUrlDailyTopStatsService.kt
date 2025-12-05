@@ -42,7 +42,7 @@ class ShortUrlDailyTopStatsService(
         fun mapToTopUrlInfo(rank: Int, keyCount: KeyCountVo): TopUrlInfo {
             val shortUrl = shortUrlMap[keyCount.key]
                 ?: throw IllegalStateException("ShortUrl info not found for key: ${keyCount.key}")
-            val fullShortUrl = shortUrl.getShortUrl()
+            val fullShortUrl = shortUrl.generateShortUrlOrThrow()
             return TopUrlInfo(
                 rank = rank,
                 shortKey = keyCount.key,

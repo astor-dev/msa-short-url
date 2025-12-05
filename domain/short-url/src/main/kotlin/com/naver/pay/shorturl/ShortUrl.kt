@@ -68,7 +68,7 @@ class ShortUrl private constructor(
         )
     }
 
-    fun getShortUrl(): String {
+    fun generateShortUrlOrThrow(): String {
         val key = checkNotNull(this.shortKey) { "shortKey가 설정되어 있지 않습니다." }
         return "${this.baseUrl}/$key"
     }
