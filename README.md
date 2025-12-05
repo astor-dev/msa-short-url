@@ -133,3 +133,40 @@ build.gradle.kts
 | **distributed-lock** | 분산 환경에서 락을 통한 동시성 제어를 제공     | Redisson 기반 분산 락 실행기, 락 획득/해제 자동화, 예외 상황에서도 락 해제 보장             |
 | **object-mapper** | 공통 Jackson ObjectMapper 유틸리티 모듈 | JavaTimeModule, KotlinModule 등 공통 모듈 등록, 프로젝트 전역에서 일관된 직렬화/역직렬화 |
 
+
+## 주요 파이프라인
+
+### Short URL 생성
+
+![short-url](docs/images/create-short-url.png)
+
+Short URL 생성은 **멱등성 보장**과 **동시성 제어**를 핵심으로 설계되었습니다.
+
+#### Key 생성 알고리즘
+
+DB가 할당한 ID(auto_increment)를 **Base64 URL-Safe (No Padding)** 형식으로 인코딩합니다.
+
+**트레이드오프**:
+- **장점**: 
+  - 해시 기반 방식과 비교하여 길이가 짧고 충돌 가능성이 없습니다.
+  - 인코딩/디코딩이 단순하여 성능 오버헤드가 적습니다.
+- **단점**: 
+  - 클라이언트가 ShortKey를 복호화하여 ID를 알 수 있습니다.
+  - 이를 통해PK가 누설되어 다음 URL을 예측할 수 있는 등 보안상 취약할 수 있습니다.
+
+Short URL 서비스의 특성상 **짧은 길이**와 **충돌 방지**가 더 중요하다 판단했습니다.
+
+#### 동시성 제어
+
+**분산 락 (Redis)**: 
+- 원본 URL을 락 키로 사용하여 동일한 URL에 대한 동시 생성 요청을 방지합니다.
+- Critical section 내에서 캐시 확인, DB 조회, 생성 로직이 원자적으로 실행됩니다.
+
+#### 이벤트 발행
+
+**Outbox 패턴**:
+- 트랜잭션 내에서 `event_publication` 테이블에 이벤트를 저장합니다.
+- `outbox-polling-publisher`가 0.5초 주기로 폴링하여 Kafka로 발행합니다.
+- 트랜잭션 커밋과 이벤트 발행의 원자성을 보장하여 이벤트 손실을 방지합니다.
+
+
