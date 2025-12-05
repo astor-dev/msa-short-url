@@ -10,7 +10,7 @@ include("short-url:api:url-service")
 include("short-url:api:redirect-service")
 
 include("short-url-stats")
-
+include("short-url-stats:batch")
 
 include("api")
 include("api:stats-service")
@@ -25,4 +25,3 @@ include("util:distributed-lock")
 
 include("worker")
 include("worker:short-url-stats-consumer")
-include("worker:short-url-stats-batch")
