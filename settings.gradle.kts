@@ -5,13 +5,15 @@ include("gateway")
 include("outbox")
 include("outbox:worker")
 
+include("short-url")
+
+
 include("api")
 include("api:url-service")
 include("api:redirect-service")
 include("api:stats-service")
 
 include("domain")
-include("domain:short-url")
 include("domain:resolved-short-url")
 include("domain:short-url-stats")
 
