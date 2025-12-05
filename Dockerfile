@@ -21,7 +21,7 @@ RUN ./gradlew clean build -x test --no-daemon
 # Gateway service stage
 FROM eclipse-temurin:21-jre-alpine AS gateway
 WORKDIR /app
-COPY --from=builder /app/api/gateway/build/libs/gateway.jar ./app.jar
+COPY --from=builder /app/gateway/build/libs/gateway.jar ./app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
 

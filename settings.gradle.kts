@@ -1,7 +1,8 @@
 rootProject.name = "2025-externship-be-astor-dev"
 
+include("gateway")
+
 include("api")
-include("api:gateway")
 include("api:url-service")
 include("api:redirect-service")
 include("api:stats-service")
