@@ -14,11 +14,6 @@ include("short-url-stats:batch")
 include("short-url-stats:consumer")
 include("short-url-stats:api:stats-service")
 
-
-
-include("domain")
-include("domain:resolved-short-url")
-
 include("util")
 include("util:object-mapper")
 include("util:distributed-lock")

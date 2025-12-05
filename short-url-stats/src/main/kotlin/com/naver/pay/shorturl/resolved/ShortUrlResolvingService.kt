@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service
 @Service
 class ShortUrlResolvingService(
     private val shortUrlSummaryService: ShortUrlSummaryService,
-    private val resolvedShortUrlCacheService: ResolvedShortUrlCacheService,
+    private val resolvedShortUrlRepository: ResolvedShortUrlRepository,
     private val shortUrlCacheableService: ShortUrlCacheableService
 ) {
 
@@ -20,7 +20,7 @@ class ShortUrlResolvingService(
             ?: return null
         val totalClicksCacheKey = "${CacheNames.SHORT_URL_TOTAL_CLICKS}::$shortKey"
         val lastClickedAtCacheKey = "${CacheNames.SHORT_URL_LAST_CLICKED_AT}::$shortKey"
-        val clickSummary = resolvedShortUrlCacheService.findClickSummary(totalClicksCacheKey, lastClickedAtCacheKey)
+        val clickSummary = resolvedShortUrlRepository.findClickSummary(totalClicksCacheKey, lastClickedAtCacheKey)
             ?: shortUrlSummaryService.findClickSummaryFromPersistence(shortKey)
         val resolvedShortUrl = ResolvedShortUrl(
             shortKey = shortKey,

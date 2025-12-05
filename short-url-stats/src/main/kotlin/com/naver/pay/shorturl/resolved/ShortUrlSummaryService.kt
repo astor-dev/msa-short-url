@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service
 @Service
 class ShortUrlSummaryService(
     private val shortUrlTotalStatsService: ShortUrlTotalStatsService,
-    private val resolvedShortUrlCacheService: ResolvedShortUrlCacheService
+    private val resolvedShortUrlRepository: ResolvedShortUrlRepository
 ) {
 
     /**
@@ -18,12 +18,12 @@ class ShortUrlSummaryService(
     fun incrementClickCount(shortKey: String) {
         val totalClicksCacheKey = "${CacheNames.SHORT_URL_TOTAL_CLICKS}::$shortKey"
         val lastClickedAtCacheKey = "${CacheNames.SHORT_URL_LAST_CLICKED_AT}::$shortKey"
-        if (resolvedShortUrlCacheService.hasKey(totalClicksCacheKey)) {
-            resolvedShortUrlCacheService.recordClickAtomically(totalClicksCacheKey, lastClickedAtCacheKey)
+        if (resolvedShortUrlRepository.hasCacheKey(totalClicksCacheKey)) {
+            resolvedShortUrlRepository.recordClickAtomically(totalClicksCacheKey, lastClickedAtCacheKey)
             return
         }
         val clickSummary = findClickSummaryFromPersistence(shortKey)
-        resolvedShortUrlCacheService.upsertClick(shortKey, totalClicksCacheKey, lastClickedAtCacheKey, clickSummary)
+        resolvedShortUrlRepository.upsertClick(shortKey, totalClicksCacheKey, lastClickedAtCacheKey, clickSummary)
     }
 
     fun findClickSummaryFromPersistence(shortKey: String): ClickSummary {

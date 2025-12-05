@@ -1,8 +1,5 @@
-package com.naver.pay.shorturl.resolved.infrastructure.redis
+package com.naver.pay.shorturl.resolved
 
-import com.naver.pay.shorturl.resolved.CacheNames
-import com.naver.pay.shorturl.resolved.ClickSummary
-import com.naver.pay.shorturl.resolved.ResolvedShortUrlCacheService
 import com.naver.pay.util.DistributedLockExecutor
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.script.DefaultRedisScript
@@ -11,10 +8,10 @@ import org.springframework.stereotype.Service
 import java.time.Instant
 
 @Service
-class ResolvedShortUrlRedisCacheService(
+class ResolvedShortUrlRepository(
     private val redisTemplate: RedisTemplate<String, String>,
     private val distributedLockExecutor: DistributedLockExecutor
-): ResolvedShortUrlCacheService {
+) {
 
     /**
      * 클릭 수 집계 및 최종 클릭 시각 업데이트를 위한 Redis Lua 스크립트
@@ -52,11 +49,11 @@ class ResolvedShortUrlRedisCacheService(
     )
     private final val ttlSeconds: Long = 60 * 60 * 24 * 14
 
-    override fun hasKey(key: String): Boolean {
+    fun hasCacheKey(key: String): Boolean {
         return redisTemplate.hasKey(key)
     }
 
-    override fun recordClickAtomically(totalClicksCacheKey: String, lastClickedAtCacheKey: String) {
+    fun recordClickAtomically(totalClicksCacheKey: String, lastClickedAtCacheKey: String) {
         val now = Instant.now().toString()
         val keys = listOf(totalClicksCacheKey, lastClickedAtCacheKey)
         val args = arrayOf(now, ttlSeconds.toString())
@@ -67,7 +64,7 @@ class ResolvedShortUrlRedisCacheService(
         )
     }
 
-    override fun upsertClick(shortKey: String, totalClicksCacheKey: String, lastClickedAtCacheKey: String, clickSummary: ClickSummary) {
+    fun upsertClick(shortKey: String, totalClicksCacheKey: String, lastClickedAtCacheKey: String, clickSummary: ClickSummary) {
         distributedLockExecutor.execute(
             lockName = CacheNames.CLICK_SUMMARY_INIT_LOCK,
             key = shortKey
@@ -84,7 +81,7 @@ class ResolvedShortUrlRedisCacheService(
         }
     }
 
-    override fun findClickSummary(
+    fun findClickSummary(
         totalClicksCacheKey: String,
         lastClickedAtCacheKey: String
     ): ClickSummary? {

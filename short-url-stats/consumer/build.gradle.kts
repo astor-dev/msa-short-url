@@ -4,7 +4,6 @@ apply(plugin = "org.jetbrains.kotlin.plugin.spring")
 dependencies {
     implementation(project(":short-url"))
     implementation(project(":short-url-stats"))
-    implementation(project(":domain:resolved-short-url"))
 
 
     implementation(project(":util:object-mapper"))
