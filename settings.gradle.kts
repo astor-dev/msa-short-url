@@ -9,13 +9,14 @@ include("short-url")
 include("short-url:api:url-service")
 include("short-url:api:redirect-service")
 
+include("short-url-stats")
+
 
 include("api")
 include("api:stats-service")
 
 include("domain")
 include("domain:resolved-short-url")
-include("domain:short-url-stats")
 
 include("util")
 include("util:object-mapper")
