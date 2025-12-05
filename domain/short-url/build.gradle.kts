@@ -2,7 +2,7 @@ apply(plugin = "org.jetbrains.kotlin.plugin.jpa")
 apply(plugin = "java-library")
 
 dependencies {
-    implementation(project(":domain:outbox"))
+    implementation(project(":outbox"))
 
     api("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")

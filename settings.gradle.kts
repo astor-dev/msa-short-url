@@ -1,6 +1,7 @@
 rootProject.name = "2025-externship-be-astor-dev"
 
 include("gateway")
+include("outbox")
 
 include("api")
 include("api:url-service")
@@ -8,7 +9,6 @@ include("api:redirect-service")
 include("api:stats-service")
 
 include("domain")
-include("domain:outbox")
 include("domain:short-url")
 include("domain:resolved-short-url")
 include("domain:short-url-stats")
