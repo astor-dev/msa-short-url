@@ -36,7 +36,7 @@ Short URL이 생성되었을 때 발행되는 이벤트입니다.
 - **소비 주체**: `short-url-stats-consumer`
 - **파티션 키**: `shortKey`
 - **Offset 전략**: `earliest` (모든 이벤트 처리)
--**작렬화**: `JSON`
+- **직렬화**: `JSON`
  
 **페이로드 스키마**
 
@@ -99,6 +99,7 @@ Short URL이 클릭되어 리다이렉트될 때 발행되는 이벤트입니다
 - **소비 주체**: `short-url-stats-consumer`
 - **파티션 키**: `shortKey`
 - **Offset 전략**: `latest` (실시간 이벤트만 처리)
+- **직렬화**: `JSON`
 
 **페이로드 스키마**:
 
