@@ -22,9 +22,25 @@ docker compose -f docker-compose.infrastructure.yml up -d --build
 docker compose -f docker-compose.services.yml up -d --build  
 ```
 6개의 서비스가 실행됩니다. CPU 및 메모리 부하에 주의가 필요합니다.
-### 개별 서비스 로컬 실행 (예: 게이트웨이)
+### 개별 서비스 로컬 실행
+
+각 도메인의 실행 단위를 개별적으로 실행할 수 있습니다.
+
 ```shell
-./gradlew :api:gateway:bootrun  
+# Gateway
+./gradlew :gateway:bootrun
+
+# Short URL 도메인
+./gradlew :short-url:api:url-service:bootrun
+./gradlew :short-url:api:redirect-service:bootrun
+
+# Short URL Stats 도메인
+./gradlew :short-url-stats:api:stats-service:bootrun
+./gradlew :short-url-stats:consumer:bootrun
+./gradlew :short-url-stats:batch:bootrun
+
+# Outbox 도메인
+./gradlew :outbox:worker:bootrun
 ```
 
 ## 💾 인프라 컴포넌트
@@ -55,24 +71,24 @@ docker compose -f docker-compose.services.yml up -d --build
 ## 📦 프로젝트 모듈 구조
 
 ```plaintext
-api/
-  ├─ gateway
-  ├─ url-service
-  ├─ redirect-service
-  ├─ stats-service
+gateway/
   └─ build.gradle.kts
 
-worker/
-  ├─ outbox-polling-publisher
-  ├─ short-url-stats-batch
-  ├─ short-url-stats-consumer
+short-url/
+  ├─ api
+  │  ├─ url-service
+  │  └─ redirect-service
+  └─ build.gradle.kts
+  
+short-url-stats/
+  ├─ api
+  │  └─ stats-service
+  ├─ consumer
+  ├─ batch  
   └─ build.gradle.kts
 
-domain/
-  ├─ shorturl
-  ├─ resolved-short-url
-  ├─ short-url-stats
-  ├─ outbox
+outbox/
+  ├─ worker
   └─ build.gradle.kts
 
 util/
@@ -83,55 +99,84 @@ util/
 build.gradle.kts
 ```
 
-### 모듈 분할의 기준
+### 아키텍처 설계 원칙
 
-본 플랫폼은 **기능별 책임 분리**와 **트래픽 특성**에 따라 모듈을 분리했습니다.
+- **도메인 단위 응집**: 비즈니스 도메인별로 최상위 모듈을 구성하여 높은 응집도를 유지합니다.
+- **실행 단위 분리**: 각 도메인 내부에 독립적으로 배포 및 스케일링 가능한 실행 단위를 포함합니다.
+- **도메인 모듈 공유**: 도메인 로직은 실행 단위 간 공유 가능하도록 설계했습니다.
 
-- 별도의 **런타임**을 가질 수 있으며 특정 트래픽을 응집해 처리하는 모듈을 **실행 모듈**로 분류합니다. 
-- 특정 기능/도메인 단위로 응집되며 타 모듈에서 가져와 사용할 수 있는 모듈을 **기능 모듈**로 분류합니다.
+### 도메인 모듈
 
+각 도메인은 독립적인 비즈니스 영역을 담당하며, 내부에 실행 단위와 도메인 로직 모듈을 포함합니다.
 
+#### short-url 도메인
 
-### 실행 모듈
+Short URL 생성 및 리다이렉트를 담당하는 핵심 도메인입니다.
 
-별도의 런타임을 가질 수 있으며 독립 배포 및 스케일링이 가능한 모듈입니다. `:bootrun`을 통해 실행 가능한 스프링부트 애플리케이션입니다.
+**실행 단위:**
 
-#### api 모듈
+| 모듈 | 포트 | 주요 기능                                 | 기술 스택                                            |
+|------|------|---------------------------------------|--------------------------------------------------|
+| **url-service** | 8081 | Short URL 생성, 중복 방지, 동시 진입 방지, 멱등성 보장 | Spring Boot Web, Redis, JPA, Spring Cloud Stream |
+| **redirect-service** | 8082 | 리다이렉트 처리, 캐시 기반 조회                    | Spring Boot Web, JPA, Redis, Spring Cloud Stream |
+
+**도메인:**
+
+| 도메인           | 기능                                                        |
+|---------------|-----------------------------------------------------------|
+| **short-url** | Short URL 코어 도메인 - ID 기반 Base64 인코딩으로 Short Key 생성, RDBMS 저장, 캐싱, 이벤트 발행     |
+
+#### short-url-stats 도메인
+
+Short URL 통계 집계 및 조회를 담당하는 도메인입니다.
+
+**실행 단위:**
+
+| 모듈                        | 포트 | 주요 기능 | 기술 스택                                            |
+|---------------------------|------|----------|--------------------------------------------------|
+| **stats-service**         | 8083 | 통계 조회 API (상태/상세/Top N)               | Spring Boot Web, MongoDB, Redis                  |
+| **consumer**              | 8091 | Kafka 이벤트 소비, 통계 집계 (MongoDB/Redis) | Spring Boot, Spring Cloud Stream, MongoDB, Redis |
+| **batch**                 | 8092 | 일별 Top N 통계 배치 집계 및 영속화 | Spring Boot, Spring Batch, JPA, MongoDB, Redis   |
+
+**도메인:**
+
+| 모듈 | 기능                                                                               |
+|------|----------------------------------------------------------------------------------|
+| **short-url-stats** | Short URL 통계 집계 및 조회 - MongoDB 상세 저장, Redis Sorted Set 실시간 집계, Lua Script 원자적 연산 |
+| **resolved-short-url** | 통계 등 메타 정보가 결합된 Short URL - Short URL과 메타 정보 결합, 캐시 기반 빠른 연산, 영속성 계층과의 통합        |
+
+#### outbox 도메인
+
+이벤트 발행의 트랜잭션 일관성을 보장하는 도메인입니다.
+
+**실행 단위:**
+
+| 모듈         | 포트 | 주요 기능 | 기술 스택                                            |
+|------------|------|----------|--------------------------------------------------|
+| **worker** | 8090 | Outbox 패턴 구현, 이벤트 발행 (0.5초 주기, 배치 50건) | Spring Boot, Spring Cloud Stream, JPA            |
+
+**도메인:**
+
+| 모듈 | 기능                                                        |
+|------|-----------------------------------------------------------|
+| **outbox** | Outbox 패턴 구현에 필요한 기능 모듈 - 트랜잭션과 이벤트 발행 일관성 보장, `FOR UPDATE SKIP LOCKED` 분산 환경 지원    |
+
+### 인프라 모듈
+
+도메인과 무관한 공통 인프라 및 유틸리티를 제공합니다.
+
+#### gateway
 
 | 모듈 | 포트 | 주요 기능                                 | 기술 스택                                            |
 |------|------|---------------------------------------|--------------------------------------------------|
 | **gateway** | 8080 | API Gateway, 라우팅 처리                   | Spring Cloud Gateway (WebFlux)                   |
-| **url-service** | 8081 | Short URL 생성, 중복 방지, 동시 진입 방지, 멱등성 보장 | Spring Boot Web, Redis, JPA, Spring Cloud Stream |
-| **redirect-service** | 8082 | 리다이렉트 처리, 캐시 기반 조회                    | Spring Boot Web, JPA, Redis, Spring Cloud Stream |
-| **stats-service** | 8083 | 통계 조회 API (상태/상세/Top N)               | Spring Boot Web, MongoDB, Redis                  |
-
-#### worker 모듈
-
-| 모듈 | 포트 | 주요 기능 | 기술 스택                                            |
-|------|------|----------|--------------------------------------------------|
-| **outbox-polling-publisher** | 8090 | Outbox 패턴 구현, 이벤트 발행 (0.5초 주기, 배치 50건) | Spring Boot, Spring Cloud Stream, JPA            |
-| **short-url-stats-consumer** | 8091 | Kafka 이벤트 소비, 통계 집계 (MongoDB/Redis) | Spring Boot, Spring Cloud Stream, MongoDB, Redis |
-| **short-url-stats-batch** | 8092 | 일별 Top N 통계 배치 집계 및 영속화 | Spring Boot, Spring Batch, JPA, MongoDB, Redis   |
-
-### 기능 모듈
-
-특정 기능/도메인 단위로 응집되며 타 모듈에서 가져와 사용할 수 있는 모듈입니다. 독립적인 런타임을 가지지 않으며, 실행 모듈에 의존성으로 포함되어 사용됩니다.
-
-#### domain 모듈
-
-| 모듈 | 정의                        | 기능                                                        |
-|------|---------------------------|-----------------------------------------------------------|
-| **short-url** | Short URL 코어 도메인          | ID 기반 Base64 인코딩으로 Short Key 생성, RDBMS 저장, 캐싱, 이벤트 발행     |
-| **resolved-short-url** | 메타 정보 등 정보가 결합된 Short URL | Short URL과 메타 정보 결합, 캐시 기반 빠른 연산, 영속성 계층과의 통합             |
-| **short-url-stats** | Short URL 통계 집계 및 조회      | MongoDB 상세 저장, Redis Sorted Set 실시간 집계, Lua Script 원자적 연산 |
-| **outbox** | Outbox 패턴 구현에 필요한 기능 모듈   | 트랜잭션과 이벤트 발행 일관성 보장, `FOR UPDATE SKIP LOCKED` 분산 환경 지원    |
 
 #### util 모듈
 
-| 모듈 | 정의                           | 기능                                                              |
-|------|------------------------------|-----------------------------------------------------------------|
-| **distributed-lock** | 분산 환경에서 락을 통한 동시성 제어를 제공     | Redisson 기반 분산 락 실행기, 락 획득/해제 자동화, 예외 상황에서도 락 해제 보장             |
-| **object-mapper** | 공통 Jackson ObjectMapper 유틸리티 모듈 | JavaTimeModule, KotlinModule 등 공통 모듈 등록, 프로젝트 전역에서 일관된 직렬화/역직렬화 |
+| 모듈 | 기능                                                              |
+|------|-----------------------------------------------------------------|
+| **distributed-lock** | 분산 환경에서 락을 통한 동시성 제어를 제공 - Redisson 기반 분산 락 실행기, 락 획득/해제 자동화, 예외 상황에서도 락 해제 보장             |
+| **object-mapper** | 공통 Jackson ObjectMapper 유틸리티 모듈 - JavaTimeModule, KotlinModule 등 공통 모듈 등록, 프로젝트 전역에서 일관된 직렬화/역직렬화 |
 
 
 ## 주요 파이프라인
