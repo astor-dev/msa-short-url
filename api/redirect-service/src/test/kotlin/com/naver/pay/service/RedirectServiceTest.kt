@@ -3,8 +3,8 @@ package com.naver.pay.service
 import com.naver.pay.exception.ExpiredLinkException
 import com.naver.pay.shorturl.ShortUrl
 import com.naver.pay.shorturl.ShortUrlCacheableService
-import com.naver.pay.shorturl.ShortUrlClickedPayload
-import com.naver.pay.shorturl.infrastructure.stream.ShortUrlEventProducer
+import com.naver.pay.shorturl.stream.ShortUrlClickedPayload
+import com.naver.pay.shorturl.stream.ShortUrlEventProducer
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
@@ -47,17 +47,17 @@ class RedirectServiceTest : BehaviorSpec({
                 expiresAt = now.plusSeconds(60 * 60)
             )
 
-            every { shortUrlCacheableService.findShortUrlByShortKeyOrThrow(shortKey) } returns unexpiredShortUrl
+            every { shortUrlCacheableService.findShortUrlByShortKey(shortKey) } returns unexpiredShortUrl
             every { shortUrlEventProducer.publishUrlClicked(any(), any()) } returns Unit
 
 
             Then("원본 URL을 반환해야 한다") {
-                val result = redirectService.getRedirectUrlOrThrow(shortKey, userAgent, referrer)
+                val result = redirectService.getRedirectUrl(shortKey, userAgent, referrer)
                 result shouldBe originalUrl
             }
 
             Then("클릭 이벤트를 발행해야 한다") {
-                redirectService.getRedirectUrlOrThrow(shortKey, userAgent, referrer)
+                redirectService.getRedirectUrl(shortKey, userAgent, referrer)
                 verify(exactly = 1) {
                     shortUrlEventProducer.publishUrlClicked(
                         shortKey,
@@ -69,7 +69,7 @@ class RedirectServiceTest : BehaviorSpec({
             }
             
             Then("user agent와 referrer가 null일 경우 기본값으로 클릭 이벤트를 발행해야 한다") {
-                redirectService.getRedirectUrlOrThrow(shortKey, null, null)
+                redirectService.getRedirectUrl(shortKey, null, null)
                 verify(exactly = 1) {
                     shortUrlEventProducer.publishUrlClicked(
                         shortKey,
@@ -90,34 +90,34 @@ class RedirectServiceTest : BehaviorSpec({
                 createdAt = now.minusSeconds(60 * 60 * 2),
                 expiresAt = now.minusSeconds(60 * 60)
             )
-            every { shortUrlCacheableService.findShortUrlByShortKeyOrThrow(shortKey) } returns expiredShortUrl
+            every { shortUrlCacheableService.findShortUrlByShortKey(shortKey) } returns expiredShortUrl
 
             Then("ExpiredLinkException을 던져야 한다") {
                 shouldThrow<ExpiredLinkException> {
-                    redirectService.getRedirectUrlOrThrow(shortKey, userAgent, referrer)
+                    redirectService.getRedirectUrl(shortKey, userAgent, referrer)
                 }
             }
 
             Then("클릭 이벤트를 발행하지 않아야 한다") {
                 shouldThrow<ExpiredLinkException> {
-                    redirectService.getRedirectUrlOrThrow(shortKey, userAgent, referrer)
+                    redirectService.getRedirectUrl(shortKey, userAgent, referrer)
                 }
                 verify(exactly = 0) { shortUrlEventProducer.publishUrlClicked(any(), any()) }
             }
         }
 
         When("존재하지 않는 shortKey가 주어지면") {
-            every { shortUrlCacheableService.findShortUrlByShortKeyOrThrow(any()) } throws NoSuchElementException("Short URL not found")
+            every { shortUrlCacheableService.findShortUrlByShortKey(any()) } throws NoSuchElementException("Short URL not found")
 
             Then("NoSuchElementException을 던져야 한다") {
                 shouldThrow<NoSuchElementException> {
-                    redirectService.getRedirectUrlOrThrow("nonExistentKey", userAgent, referrer)
+                    redirectService.getRedirectUrl("nonExistentKey", userAgent, referrer)
                 }
             }
 
             Then("클릭 이벤트를 발행하지 않아야 한다") {
                 shouldThrow<NoSuchElementException> {
-                    redirectService.getRedirectUrlOrThrow("nonExistentKey", userAgent, referrer)
+                    redirectService.getRedirectUrl("nonExistentKey", userAgent, referrer)
                 }
                 verify(exactly = 0) { shortUrlEventProducer.publishUrlClicked(any(), any()) }
             }

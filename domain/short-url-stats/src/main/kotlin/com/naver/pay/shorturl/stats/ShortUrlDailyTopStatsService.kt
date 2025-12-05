@@ -36,7 +36,7 @@ class ShortUrlDailyTopStatsService(
                 ).toSet()
         // TODO: In 활용 조회로 최적화
         val shortUrlMap = allUniqueKeys.associateWith { key ->
-            shortUrlCacheableService.findShortUrlByShortKeyOrThrow(key)
+            shortUrlCacheableService.findShortUrlByShortKey(key)
         }
 
         fun mapToTopUrlInfo(rank: Int, keyCount: KeyCountVo): TopUrlInfo {

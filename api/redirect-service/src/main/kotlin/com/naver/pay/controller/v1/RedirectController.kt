@@ -23,11 +23,11 @@ class RedirectController(
         @RequestHeader("User-Agent", required = false) userAgent: String?,
         @RequestHeader("Referer", required = false) referrer: String?
     ): ResponseEntity<Void> {
-        val redirectUrl = redirectService.getRedirectUrlOrThrow(
+        val redirectUrl = redirectService.getRedirectUrl(
             shortKey = shortKey,
             userAgent = userAgent,
             referrer = referrer
-        )
+        ) ?: throw NoSuchElementException("shortUrl을 찾을 수 없습니다.")
 
         val headers = HttpHeaders()
         headers.location = URI.create(redirectUrl)

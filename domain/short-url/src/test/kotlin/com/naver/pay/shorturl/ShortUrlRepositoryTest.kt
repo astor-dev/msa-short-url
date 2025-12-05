@@ -1,8 +1,8 @@
-package com.naver.pay.shorturl.infrastructure.redis
+package com.naver.pay.shorturl
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.naver.pay.shorturl.CacheNames
-import com.naver.pay.shorturl.ShortUrl
+import com.naver.pay.outbox.OutboxService
+import com.naver.pay.shorturl.jpa.ShortUrlJpaRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
@@ -15,12 +15,13 @@ import org.springframework.data.redis.core.ValueOperations
 import java.time.Duration
 import java.time.Instant
 
-class ShortUrlRedisCacheServiceTest : BehaviorSpec({
+class ShortUrlRepositoryTest: BehaviorSpec ({
     val redisTemplate = mockk<RedisTemplate<String, String>>()
     val objectMapper = mockk<ObjectMapper>()
     val valueOperations = mockk<ValueOperations<String, String>>()
-
-    val shortUrlRedisCacheService = ShortUrlRedisCacheService(redisTemplate, objectMapper)
+    val outboxService = mockk<OutboxService>()
+    val shortUrlJpaRepository = mockk< ShortUrlJpaRepository>()
+    val shortUrlRepository = ShortUrlRepository(redisTemplate, objectMapper, outboxService, shortUrlJpaRepository)
 
     beforeTest {
         every { redisTemplate.opsForValue() } returns valueOperations
@@ -50,7 +51,7 @@ class ShortUrlRedisCacheServiceTest : BehaviorSpec({
             every { valueOperations.get(cacheKey) } returns shortUrlJson
             every { objectMapper.readValue(shortUrlJson, ShortUrl::class.java) } returns shortUrl
 
-            val result = shortUrlRedisCacheService.findShortUrlByShortKey(shortKey)
+            val result = shortUrlRepository.findShortUrlByShortKeyInCache(shortKey)
 
             Then("역직렬화된 ShortUrl 객체를 반환한다") {
                 result shouldBe shortUrl
@@ -62,7 +63,7 @@ class ShortUrlRedisCacheServiceTest : BehaviorSpec({
         When("캐시에 값이 존재하지 않을 경우") {
             every { valueOperations.get(cacheKey) } returns null
 
-            val result = shortUrlRedisCacheService.findShortUrlByShortKey(shortKey)
+            val result = shortUrlRepository.findShortUrlByShortKeyInCache(shortKey)
 
             Then("null을 반환한다") {
                 result shouldBe null
@@ -76,7 +77,7 @@ class ShortUrlRedisCacheServiceTest : BehaviorSpec({
             every { valueOperations.get(cacheKey) } returns invalidJson
             every { objectMapper.readValue(invalidJson, ShortUrl::class.java) } throws Exception()
 
-            val result = shortUrlRedisCacheService.findShortUrlByShortKey(shortKey)
+            val result = shortUrlRepository.findShortUrlByShortKeyInCache(shortKey)
 
             Then("null을 반환한다") {
                 result shouldBe null
@@ -106,7 +107,7 @@ class ShortUrlRedisCacheServiceTest : BehaviorSpec({
             every { objectMapper.writeValueAsString(shortUrl) } returns shortUrlJson
             every { valueOperations.set(cacheKey, shortUrlJson, ttl) } returns Unit
 
-            shortUrlRedisCacheService.cacheShortUrlByShortKey(shortUrl, ttl)
+            shortUrlRepository.cacheShortUrlByShortKey(shortUrl, ttl)
 
             Then("Redis에 값을 저장해야 한다") {
                 verify(exactly = 1) { objectMapper.writeValueAsString(shortUrl) }
@@ -128,7 +129,7 @@ class ShortUrlRedisCacheServiceTest : BehaviorSpec({
 
             Then("IllegalStateException을 던진다") {
                 shouldThrow<IllegalStateException> {
-                    shortUrlRedisCacheService.cacheShortUrlByShortKey(shortUrlWithNoKey, ttl)
+                    shortUrlRepository.cacheShortUrlByShortKey(shortUrlWithNoKey, ttl)
                 }
                 verify(exactly = 0) { objectMapper.writeValueAsString(any()) }
                 verify(exactly = 0) { valueOperations.set("anyKey", "anyValue", 1L) }

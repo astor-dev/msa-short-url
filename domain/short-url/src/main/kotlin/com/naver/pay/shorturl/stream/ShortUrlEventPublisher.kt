@@ -1,6 +1,5 @@
-package com.naver.pay.shorturl.infrastructure.stream
+package com.naver.pay.shorturl.stream
 
-import com.naver.pay.shorturl.ShortUrlClickedPayload
 import org.springframework.cloud.stream.function.StreamBridge
 import org.springframework.kafka.support.KafkaHeaders
 import org.springframework.messaging.support.MessageBuilder

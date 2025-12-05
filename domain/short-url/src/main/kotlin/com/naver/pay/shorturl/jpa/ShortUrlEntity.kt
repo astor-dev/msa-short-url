@@ -1,4 +1,4 @@
-package com.naver.pay.shorturl.infrastructure.jpa
+package com.naver.pay.shorturl.jpa
 
 import com.naver.pay.shorturl.ShortUrl
 import jakarta.persistence.*

@@ -16,12 +16,8 @@ class ShortUrlResolvingService(
      * @return ResolvedShortUrl shortKey에 해당하는 값이 존재하지 않는 경우 null을 return 합니다.
      */
     fun resolveShortUrl(shortKey: String): ResolvedShortUrl? {
-        val shortUrl = try {
-            shortUrlCacheableService.findShortUrlByShortKeyOrThrow(shortKey)
-        } catch (_: NoSuchElementException) {
-            return null
-        }
-
+        val shortUrl = shortUrlCacheableService.findShortUrlByShortKey(shortKey)
+            ?: return null
         val totalClicksCacheKey = "${CacheNames.SHORT_URL_TOTAL_CLICKS}::$shortKey"
         val lastClickedAtCacheKey = "${CacheNames.SHORT_URL_LAST_CLICKED_AT}::$shortKey"
         val clickSummary = resolvedShortUrlCacheService.findClickSummary(totalClicksCacheKey, lastClickedAtCacheKey)
