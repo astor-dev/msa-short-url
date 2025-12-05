@@ -1,36 +1,24 @@
-package com.naver.pay.service
+package com.naver.pay.controller
 
-import com.naver.pay.controller.ClickSummaryResponseDto
-import com.naver.pay.controller.DailyTopStatsResponseDto
-import com.naver.pay.controller.ShortUrlStateResponseDto
-import com.naver.pay.controller.ShortUrlStatisticsByDateResponseDto
-import com.naver.pay.controller.ShortUrlStatisticsByDeviceTypeResponseDto
-import com.naver.pay.controller.ShortUrlStatisticsByReferrerResponseDto
-import com.naver.pay.controller.ShortUrlStatisticsResponseDto
-import com.naver.pay.controller.TopByDeviceResponseDto
-import com.naver.pay.controller.TopByDeviceUrlResponseDto
-import com.naver.pay.controller.TopReferrerResponseDto
-import com.naver.pay.controller.TopUrlResponseDto
-import com.naver.pay.shorturl.resolved.ResolvedShortUrl
 import com.naver.pay.shorturl.stats.DailyTopStats
 import com.naver.pay.shorturl.stats.TotalStats
 import java.time.temporal.ChronoUnit
 
-fun ResolvedShortUrl.toDto(): ShortUrlStateResponseDto {
+fun TotalStats.toStateDto() : ShortUrlStateResponseDto {
     return ShortUrlStateResponseDto(
         shortKey = this.shortKey,
-        shortUrl = this.shortUrl,
-        originalUrl = this.originalUrl,
-        createdAt = this.createdAt.truncatedTo(ChronoUnit.SECONDS).toString(),
-        expiresAt = this.expiredAt.truncatedTo(ChronoUnit.SECONDS).toString(),
+        shortUrl = this.metadata.shortUrl,
+        originalUrl = this.metadata.originalUrl,
+        createdAt = this.metadata.shortUrlCreatedAt.truncatedTo(ChronoUnit.SECONDS).toString(),
+        expiresAt = this.metadata.shortUrlExpiredAt.truncatedTo(ChronoUnit.SECONDS).toString(),
         ClickSummaryResponseDto(
-            totalClicks = this.clickSummary.totalClicks,
-            lastClickedAt = this.clickSummary.lastClickedAt?.truncatedTo(ChronoUnit.SECONDS)?.toString(),
+            totalClicks = this.totalClicks,
+            lastClickedAt = this.lastClickedAt?.truncatedTo(ChronoUnit.SECONDS)?.toString(),
         )
     )
 }
 
-fun TotalStats.toDto() : ShortUrlStatisticsResponseDto {
+fun TotalStats.toStatsDto() : ShortUrlStatisticsResponseDto {
     val byDate = this.byDate.map {
         ShortUrlStatisticsByDateResponseDto(
             date = it.date,

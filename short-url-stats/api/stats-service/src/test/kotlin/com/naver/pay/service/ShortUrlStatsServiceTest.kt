@@ -6,9 +6,6 @@ import com.naver.pay.controller.ShortUrlStatisticsByDateResponseDto
 import com.naver.pay.controller.ShortUrlStatisticsByDeviceTypeResponseDto
 import com.naver.pay.controller.ShortUrlStatisticsByReferrerResponseDto
 import com.naver.pay.controller.ShortUrlStatisticsResponseDto
-import com.naver.pay.shorturl.resolved.ClickSummary
-import com.naver.pay.shorturl.resolved.ResolvedShortUrl
-import com.naver.pay.shorturl.resolved.ShortUrlResolvingService
 import com.naver.pay.shorturl.stats.DailyTopStatsService
 import com.naver.pay.shorturl.stats.ShortUrlMetadata
 import com.naver.pay.shorturl.stats.ShortUrlStatsByDate
@@ -30,11 +27,9 @@ import java.util.NoSuchElementException
 
 
 class ShortUrlStatsServiceTest : BehaviorSpec({
-//    val resolvedShortUrlCachableService = mockk<ResolvedShortUrlCachableService>()
-    val shortUrlResolvingService = mockk<ShortUrlResolvingService>()
     val totalStatsService = mockk<TotalStatsService>()
     val shortUrlDailyTopStatsService = mockk<DailyTopStatsService>()
-    val shortUrlStatsService = ShortUrlStatsService(shortUrlResolvingService, totalStatsService, shortUrlDailyTopStatsService)
+    val shortUrlStatsService = ShortUrlStatsService(totalStatsService, shortUrlDailyTopStatsService)
 
     afterTest {
         clearAllMocks()
@@ -46,42 +41,51 @@ class ShortUrlStatsServiceTest : BehaviorSpec({
 
         When("findShortUrlStateOrThrow 호출 시") {
             And("존재하는 shortKey가 주어지면") {
-                val resolvedShortUrl = ResolvedShortUrl(
+                val shortUrl = "http://localhost/$shortKey"
+                val originalUrl = "https://naver.com"
+                val createdAt = now
+                val expiresAt = now.plusSeconds(3600)
+                val totalClicks = 1000L
+                val lastClickedAt = now.minusSeconds(120)
+                val totalStats = TotalStats(
                     shortKey = shortKey,
-                    shortUrl = "http://localhost/$shortKey",
-                    originalUrl = "https://naver.com",
-                    createdAt = now,
-                    expiredAt = now.plusSeconds(3600),
-                    clickSummary = ClickSummary(
-                        totalClicks = 123L,
-                        lastClickedAt = now.minusSeconds(60)
+                    totalClicks = totalClicks,
+                    byDate = listOf(ShortUrlStatsByDate("2025-12-04", 500L)),
+                    byDevice = listOf(ShortUrlStatsByDevice("PC", 800L)),
+                    byReferrer = listOf(ShortUrlStatsByReferrer("google.com", 200L)),
+                    lastClickedAt = lastClickedAt,
+                    metadata = ShortUrlMetadata(
+                        shortUrl = shortUrl,
+                        originalUrl = originalUrl,
+                        shortUrlCreatedAt = createdAt,
+                        shortUrlExpiredAt = expiresAt
                     )
                 )
                 val expectedDto = ShortUrlStateResponseDto(
                     shortKey = shortKey,
-                    shortUrl = "http://localhost/$shortKey",
-                    originalUrl = "https://naver.com",
-                    createdAt = now.truncatedTo(ChronoUnit.SECONDS).toString(),
-                    expiresAt = now.plusSeconds(3600).truncatedTo(ChronoUnit.SECONDS).toString(),
+                    shortUrl = shortUrl,
+                    originalUrl = originalUrl,
+                    createdAt = createdAt.truncatedTo(ChronoUnit.SECONDS).toString(),
+                    expiresAt = expiresAt.truncatedTo(ChronoUnit.SECONDS).toString(),
                     clickSummary = ClickSummaryResponseDto(
-                        totalClicks = 123L,
-                        lastClickedAt = now.minusSeconds(60).truncatedTo(ChronoUnit.SECONDS).toString()
+                        totalClicks = totalClicks,
+                        lastClickedAt = lastClickedAt.truncatedTo(ChronoUnit.SECONDS).toString()
                     )
                 )
 
-                every { shortUrlResolvingService.resolveShortUrl(shortKey) } returns resolvedShortUrl
+                every { totalStatsService.findOne(shortKey) } returns totalStats
 
                 val result = shortUrlStatsService.findShortUrlStateOrThrow(shortKey)
 
-                Then("ResolvedShortUrl의 DTO를 반환한다") {
+                Then("Total Stats의 DTO를 반환한다") {
                     result shouldBe expectedDto
-                    verify(exactly = 1) { shortUrlResolvingService.resolveShortUrl(shortKey) }
+                    verify(exactly = 1) { totalStatsService.findOne(shortKey) }
                 }
             }
 
             And("존재하지 않는 shortKey가 주어지면") {
                 val errorMessage = "Short URL not found: $shortKey"
-                every { shortUrlResolvingService.resolveShortUrl(shortKey) } returns null
+                every { totalStatsService.findOne(shortKey) } returns null
 
                 val exception = runCatching {
                     shortUrlStatsService.findShortUrlStateOrThrow(shortKey)
@@ -90,7 +94,7 @@ class ShortUrlStatsServiceTest : BehaviorSpec({
                 Then("NoSuchElementException을 발생시킨다") {
                     exception.shouldBeInstanceOf<NoSuchElementException>()
                     exception.message shouldContain errorMessage
-                    verify(exactly = 1) { shortUrlResolvingService.resolveShortUrl(shortKey) }
+                    verify(exactly = 1) { totalStatsService.findOne(shortKey) }
                 }
             }
         }

@@ -1,7 +1,6 @@
 package com.naver.pay.consumer
 
 import com.naver.pay.shorturl.stream.ShortUrlClickedPayload
-import com.naver.pay.shorturl.resolved.ShortUrlSummaryService
 import com.naver.pay.shorturl.stats.DailyTopStatsService
 import com.naver.pay.shorturl.stats.TotalStatsService
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -15,7 +14,6 @@ import java.time.ZoneId
 class ShortUrlClicked (
     private val totalStatsService: TotalStatsService,
     private val dailyTopStatsService: DailyTopStatsService,
-    private val shortUrlSummaryService: ShortUrlSummaryService,
     private val userAgentAnalyzer: UserAgentAnalyzer
 ): Consumer<Message<ShortUrlClickedPayload>> {
     private val logger = KotlinLogging.logger(ShortUrlCreated::class.java.name)
@@ -31,7 +29,6 @@ class ShortUrlClicked (
         val krDate = payload.clickedAt
             .atZone(ZoneId.of("Asia/Seoul"))
             .toLocalDate()
-        shortUrlSummaryService.incrementClickCount(payload.shortKey)
         totalStatsService.recordClickAtomically(
             shortKey = payload.shortKey,
             referrer = referrer,

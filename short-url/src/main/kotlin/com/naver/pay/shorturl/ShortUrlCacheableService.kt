@@ -6,7 +6,7 @@ import java.time.Duration
 import java.util.concurrent.ThreadLocalRandom
 
 @Service
-class ShortUrlCacheableService(
+open class ShortUrlCacheableService(
     private val shortUrlRepository: ShortUrlRepository,
 ) {
 
@@ -36,7 +36,7 @@ class ShortUrlCacheableService(
      * @return ShortUrl 조회된 ShortUrl 도메인 객체
      */
     @Cacheable(cacheNames = [CacheNames.SHORT_URL_BY_ORIGINAL], key = "#originalUrl")
-    fun findShortUrlByOriginalUrl(originalUrl: String): ShortUrl? {
+    open fun findShortUrlByOriginalUrl(originalUrl: String): ShortUrl? {
         return shortUrlRepository.findByOriginalUrl(originalUrl)?.toDomain()
     }
 
