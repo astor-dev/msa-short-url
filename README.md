@@ -3,8 +3,8 @@
 
 author: 김도훈 (astor-dev)
 
-- [api 명세서](docs/API_SPEC.md)
-
+- [api 명세](docs/API_SPEC.md)
+- [이벤트 스키마 및 상세 설계](docs/EVENT_SCHEMA.md)
 ## 🚀 Getting Started
 
 ```shell
