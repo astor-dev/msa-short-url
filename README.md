@@ -5,6 +5,10 @@ author: 김도훈 (astor-dev)
 
 ## 🚀 Getting Started
 
+```shell
+docker compose up -d --build
+```
+총 16개의 컨테이너가 실행됩니다. 실행 컴퓨터의 CPU 및 메모리 부하에 주의가 필요합니다.
 ### 인프라 컨테이너 실행
 ```shell
 docker compose -f docker-compose.infrastructure.yml up -d --build  
