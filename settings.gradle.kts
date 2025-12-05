@@ -7,10 +7,10 @@ include("outbox:worker")
 
 include("short-url")
 include("short-url:api:url-service")
+include("short-url:api:redirect-service")
 
 
 include("api")
-include("api:redirect-service")
 include("api:stats-service")
 
 include("domain")
@@ -25,5 +25,3 @@ include("util:distributed-lock")
 include("worker")
 include("worker:short-url-stats-consumer")
 include("worker:short-url-stats-batch")
-
-include("short-url:api")
