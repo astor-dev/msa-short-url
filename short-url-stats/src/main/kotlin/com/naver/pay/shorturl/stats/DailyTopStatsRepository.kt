@@ -29,7 +29,14 @@ class DailyTopStatsRepository(
     private val dailyTopByDeviceUrlsRepository: DailyTopByDeviceUrlsRepository,
     private val redisTemplate: RedisTemplate<String, String>
 ) {
-    @Transactional
+    /**
+     * 컬렉션들로부터 DailyTopStats를 조회합니다.
+     *
+     * 최대 상위 limit만큼 조회하며, 그보다 적은 경우 적은 만큼만 리턴합니다.
+     *
+     * @param date 조회하려는 stats의 날짜
+     * @param limit top n 상한
+     */
     fun findOne(date: LocalDate, limit: Long): DailyTopStats? {
         val dateString = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
         val pageable = PageRequest.of(0, limit.toInt(), Sort.by(Sort.Direction.ASC, "rank"))
@@ -64,6 +71,7 @@ class DailyTopStatsRepository(
 
     /**
      * 일 단위 Top N 통계를 영속화합니다.
+     *
      * @param dailyTopStats 저장할 일 단위 Top N 통계
      */
     @Transactional

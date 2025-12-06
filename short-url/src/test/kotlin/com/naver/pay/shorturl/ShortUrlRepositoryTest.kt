@@ -1,7 +1,6 @@
 package com.naver.pay.shorturl
 
 import com.naver.pay.outbox.OutboxService
-import com.naver.pay.shorturl.exception.ExpiredLinkException
 import com.naver.pay.shorturl.jpa.ShortUrlEntity
 import com.naver.pay.shorturl.jpa.ShortUrlJpaRepository
 import com.naver.pay.shorturl.stream.Bindings
