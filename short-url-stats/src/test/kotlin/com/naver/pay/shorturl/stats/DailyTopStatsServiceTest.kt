@@ -29,40 +29,7 @@ class DailyTopStatsServiceTest : BehaviorSpec({
         val dateString = "2024-01-01"
         val limit = 10L
 
-        When("영속화된 통계가 존재하는 경우") {
-            val statsFromPersistence = DailyTopStats(
-                date = dateString,
-                topUrls = listOf(
-                    TopUrlInfo(
-                        rank = 1,
-                        shortKey = "key1",
-                        shortUrl = "https://short.naver.com/key1",
-                        originalUrl = "https://naver.com",
-                        totalClicks = 100L
-                    )
-                ),
-                topReferrers = emptyList(),
-                topByDevice = emptyList()
-            )
-
-            every {
-                dailyTopStatsRepository.findOne(date, limit)
-            } returns statsFromPersistence
-
-            val result = dailyTopStatsService.getOne(date, limit)
-
-            Then("영속화된 통계를 반환해야 한다") {
-                result shouldBe statsFromPersistence
-                verify(exactly = 1) {
-                    dailyTopStatsRepository.findOne(date, limit)
-                }
-                verify(exactly = 0) {
-                    dailyTopStatsRepository.findDailyStatsInCache(any(), any())
-                }
-            }
-        }
-
-        When("영속화된 통계가 없고 캐시에 데이터가 존재하는 경우") {
+        When("캐시에 데이터가 존재하는 경우") {
             val dailyStatsVo = DailyStatsVo(
                 dateKey = dateString,
                 topUrls = listOf(
@@ -89,9 +56,6 @@ class DailyTopStatsServiceTest : BehaviorSpec({
                 )
             )
 
-            every {
-                dailyTopStatsRepository.findOne(date, limit)
-            } returns null
             every {
                 dailyTopStatsRepository.findDailyStatsInCache(dateString, limit)
             } returns dailyStatsVo
@@ -123,34 +87,49 @@ class DailyTopStatsServiceTest : BehaviorSpec({
                     topByDevice = emptyList()
                 )
                 verify(exactly = 1) {
-                    dailyTopStatsRepository.findOne(date, limit)
-                }
-                verify(exactly = 1) {
                     dailyTopStatsRepository.findDailyStatsInCache(dateString, limit)
                 }
                 verify(exactly = 1) {
                     shortUrlTotalStatsRepository.findAllById(setOf("key1"))
                 }
+                verify(exactly = 0) {
+                    dailyTopStatsRepository.findOne(any(), any())
+                }
             }
         }
 
-        When("영속화된 통계가 없고 캐시에도 데이터가 없는 경우") {
-            every {
-                dailyTopStatsRepository.findOne(date, limit)
-            } returns null
+        When("캐시에 데이터가 없고 영속화된 통계가 존재하는 경우") {
+            val statsFromPersistence = DailyTopStats(
+                date = dateString,
+                topUrls = listOf(
+                    TopUrlInfo(
+                        rank = 1,
+                        shortKey = "key1",
+                        shortUrl = "https://short.naver.com/key1",
+                        originalUrl = "https://naver.com",
+                        totalClicks = 100L
+                    )
+                ),
+                topReferrers = emptyList(),
+                topByDevice = emptyList()
+            )
+
             every {
                 dailyTopStatsRepository.findDailyStatsInCache(dateString, limit)
             } returns null
+            every {
+                dailyTopStatsRepository.findOne(date, limit)
+            } returns statsFromPersistence
 
             val result = dailyTopStatsService.getOne(date, limit)
 
-            Then("빈 DailyTopStats를 반환해야 한다") {
-                result shouldBe DailyTopStats(date = dateString)
-                verify(exactly = 1) {
-                    dailyTopStatsRepository.findOne(date, limit)
-                }
+            Then("영속화된 통계를 반환해야 한다") {
+                result shouldBe statsFromPersistence
                 verify(exactly = 1) {
                     dailyTopStatsRepository.findDailyStatsInCache(dateString, limit)
+                }
+                verify(exactly = 1) {
+                    dailyTopStatsRepository.findOne(date, limit)
                 }
                 verify(exactly = 0) {
                     shortUrlTotalStatsRepository.findAllById(any())
@@ -158,7 +137,55 @@ class DailyTopStatsServiceTest : BehaviorSpec({
             }
         }
 
-        When("영속화된 통계가 없고 캐시에 topByDevice 데이터가 있는 경우") {
+        When("캐시에 데이터가 없고 영속화된 통계도 없는 경우") {
+            every {
+                dailyTopStatsRepository.findDailyStatsInCache(dateString, limit)
+            } returns null
+            every {
+                dailyTopStatsRepository.findOne(date, limit)
+            } returns null
+
+            val result = dailyTopStatsService.getOne(date, limit)
+
+            Then("빈 DailyTopStats를 반환해야 한다") {
+                result shouldBe DailyTopStats(date = dateString)
+                verify(exactly = 1) {
+                    dailyTopStatsRepository.findDailyStatsInCache(dateString, limit)
+                }
+                verify(exactly = 1) {
+                    dailyTopStatsRepository.findOne(date, limit)
+                }
+                verify(exactly = 0) {
+                    shortUrlTotalStatsRepository.findAllById(any())
+                }
+            }
+        }
+
+        When("캐시에 데이터가 없고 영속화된 통계도 없는 경우") {
+            every {
+                dailyTopStatsRepository.findDailyStatsInCache(dateString, limit)
+            } returns null
+            every {
+                dailyTopStatsRepository.findOne(date, limit)
+            } returns null
+
+            val result = dailyTopStatsService.getOne(date, limit)
+
+            Then("빈 DailyTopStats를 반환해야 한다") {
+                result shouldBe DailyTopStats(date = dateString)
+                verify(exactly = 1) {
+                    dailyTopStatsRepository.findDailyStatsInCache(dateString, limit)
+                }
+                verify(exactly = 1) {
+                    dailyTopStatsRepository.findOne(date, limit)
+                }
+                verify(exactly = 0) {
+                    shortUrlTotalStatsRepository.findAllById(any())
+                }
+            }
+        }
+
+        When("캐시에 topByDevice 데이터가 있는 경우") {
             val dailyStatsVo = DailyStatsVo(
                 dateKey = dateString,
                 topUrls = emptyList(),
@@ -189,9 +216,6 @@ class DailyTopStatsServiceTest : BehaviorSpec({
                 )
             )
 
-            every {
-                dailyTopStatsRepository.findOne(date, limit)
-            } returns null
             every {
                 dailyTopStatsRepository.findDailyStatsInCache(dateString, limit)
             } returns dailyStatsVo
@@ -232,14 +256,14 @@ class DailyTopStatsServiceTest : BehaviorSpec({
 
         When("정상적으로 실행하는 경우") {
             every {
-                dailyTopStatsRepository.recordClickAtomically(date, shortKey, referrer, device)
+                dailyTopStatsRepository.recordClickToCache(date, shortKey, referrer, device)
             } returns Unit
 
-            dailyTopStatsService.recordClickAtomically(date, shortKey, referrer, device)
+            dailyTopStatsService.captureClick(date, shortKey, referrer, device)
 
             Then("Repository의 recordClickAtomically를 호출해야 한다") {
                 verify(exactly = 1) {
-                    dailyTopStatsRepository.recordClickAtomically(date, shortKey, referrer, device)
+                    dailyTopStatsRepository.recordClickToCache(date, shortKey, referrer, device)
                 }
             }
         }

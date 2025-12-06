@@ -12,36 +12,40 @@ class DailyTopStatsService(
 ) {
     /**
      * 단축 Url에 대한 일 단위 Top N 통계를 조회합니다.
-     * 영속화된 통계가 없는 경우 캐시로부터 조회합니다.
+     *
+     * 캐시를 우선 조회하고, 영속화된 데이터를 찾습니다.
+     * 해당 일자에 저장된 통계가 없는 경우, 빈 리스트를 지닌 응답 객체를 반환합니다.
      *
      * @param date 조회하려는 일자
      * @param limit top N에서 N의 상한
-     * @return ShortUrlDailyTopStats 일 단위 Top N 통계
+     * @return 일 단위 Top N 통계
      */
     fun getOne(date: LocalDate, limit: Long): DailyTopStats {
-        val statsFromPersistence =  dailyTopStatsRepository.findOne(date, limit)
-        if(statsFromPersistence != null) return statsFromPersistence
         val dateString = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
         val dailyStatsVo = dailyTopStatsRepository.findDailyStatsInCache(dateString, limit)
-            ?: return DailyTopStats(date = dateString)
-        return resolveTotalStats(dailyStatsVo)
+        if (dailyStatsVo != null) {
+            return resolveTotalStats(dailyStatsVo)
+        }
+        val statsFromPersistence = dailyTopStatsRepository.findOne(date, limit)
+        return statsFromPersistence ?: DailyTopStats(date = dateString)
     }
 
     /**
-     * 클릭 수를 dailyTopStats에 원자적으로 기록합니다.
+     * 클릭 수를 캐시에 원자적으로 캡쳐합니다.
+     * 2일 이후 캐시가 만료됩니다.
      *
      * @param date LocalDate (한국 기준)
      * @param shortKey 방문한 url의 short Key
      * @param referrer 헤더로 부터 추출된 referrer
      * @param device 헤더로 부터 추출된 device
      */
-    fun recordClickAtomically(
+    fun captureClick(
         date: LocalDate,
         shortKey: String,
         referrer: String,
         device: String
     ) {
-        return this.dailyTopStatsRepository.recordClickAtomically(date, shortKey, referrer, device)
+        return this.dailyTopStatsRepository.recordClickToCache(date, shortKey, referrer, device)
     }
 
     /**

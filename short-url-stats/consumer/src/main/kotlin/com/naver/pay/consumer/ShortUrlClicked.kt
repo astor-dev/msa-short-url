@@ -36,7 +36,7 @@ class ShortUrlClicked (
             date = krDate,
             clickedAt = payload.clickedAt
         )
-        dailyTopStatsService.recordClickAtomically(
+        dailyTopStatsService.captureClick(
             date = krDate,
             shortKey = payload.shortKey,
             referrer = referrer,

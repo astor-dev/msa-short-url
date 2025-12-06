@@ -265,7 +265,7 @@ class DailyTopStatsRepositoryTest : BehaviorSpec({
                 redisTemplate.execute<Any?>(any(), any(), *anyVararg<Any>())
             } returns Unit
 
-            dailyTopStatsRepository.recordClickAtomically(date, shortKey, referrer, device)
+            dailyTopStatsRepository.recordClickToCache(date, shortKey, referrer, device)
 
             Then("Redis 스크립트를 실행해야 한다") {
                 verify(exactly = 1) {

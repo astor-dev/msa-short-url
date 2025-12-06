@@ -15,7 +15,6 @@ import org.springframework.data.redis.core.ZSetOperations
 import org.springframework.data.redis.core.script.DefaultRedisScript
 import org.springframework.data.redis.core.script.RedisScript
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -74,7 +73,6 @@ class DailyTopStatsRepository(
      *
      * @param dailyTopStats 저장할 일 단위 Top N 통계
      */
-    @Transactional
     fun save(dailyTopStats: DailyTopStats) {
         val date = dailyTopStats.date
 
@@ -128,7 +126,15 @@ class DailyTopStatsRepository(
         Void::class.java
     )
 
-    fun recordClickAtomically(
+    /**
+     * click에 대한 통계를 캐시에 원자적으로 기록합니다.
+     *
+     * @param date 클릭 일자
+     * @param shortKey 방문한 url의 short Key
+     * @param referrer 헤더로 부터 추출된 referrer
+     * @param device 헤더로 부터 추출된 device
+     */
+    fun recordClickToCache(
         date: LocalDate,
         shortKey: String,
         referrer: String,
@@ -150,6 +156,13 @@ class DailyTopStatsRepository(
         )
     }
 
+    /**
+     * 캐시에서 DailyStatsVo를 조회합니다.
+     *
+     * @param dateKey 조회하려는 stats의 날짜
+     * @param limit top n 상한
+     * @return DailyStatsVo, 조회된 데이터가 없으면 null
+     */
     fun findDailyStatsInCache(dateKey: String, limit: Long): DailyStatsVo? {
         val urlKey = "${CacheNames.DAILY_TOP_URLS}::$dateKey"
         if(!redisTemplate.hasKey(urlKey)) return null
@@ -179,12 +192,25 @@ class DailyTopStatsRepository(
         )
     }
 
+    /**
+     * 캐시에서 최상위 N개의 데이터를 조회합니다.
+     *
+     * @param key 조회할 key
+     * @param limit top n 상한
+     * @return Set<ZSetOperations.TypedTuple<String>>, 조회된 데이터가 없으면 Collections.emptySet()
+     */
     private fun getTopRank(key: String, limit: Long): Set<ZSetOperations.TypedTuple<String>> {
         val end = if (limit < 0) -1 else limit - 1
         return redisTemplate.opsForZSet()
             .reverseRangeWithScores(key, 0, end) ?: Collections.emptySet()
     }
 
+    /**
+     * ZSetOperations.TypedTuple<String>를 KeyCountVo로 변환합니다.
+     *
+     * @param tuple ZSetOperations.TypedTuple<String>
+     * @return KeyCountVo, 조회된 데이터가 없으면 null
+     */
     private fun toKeyCount(tuple: ZSetOperations.TypedTuple<String>): KeyCountVo? {
         return tuple.value?.let {
             KeyCountVo(
