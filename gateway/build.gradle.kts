@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.testImplementation
+
 apply(plugin = "org.springframework.boot")
 apply(plugin = "org.jetbrains.kotlin.plugin.spring")
 
@@ -14,5 +16,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
     testImplementation("com.ninja-squad:springmockk:4.0.2")
     testImplementation("io.kotest:kotest-extensions-spring")
+    testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
 }
