@@ -29,7 +29,7 @@ class ShortUrlClicked (
         val krDate = payload.clickedAt
             .atZone(ZoneId.of("Asia/Seoul"))
             .toLocalDate()
-        totalStatsService.recordClickAtomically(
+        totalStatsService.captureClick(
             shortKey = payload.shortKey,
             referrer = referrer,
             device = device,
