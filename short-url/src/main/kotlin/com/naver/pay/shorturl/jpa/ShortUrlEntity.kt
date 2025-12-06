@@ -7,12 +7,16 @@ import org.hibernate.annotations.UpdateTimestamp
 import java.time.Instant
 
 @Entity
-@Table(name = "short_url")
+@Table(
+    name = "short_url",
+    uniqueConstraints = [UniqueConstraint(name = "uk_short_key", columnNames = ["shortKey"])]
+)
 class ShortUrlEntity (
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
-    var shortKey: String? = null,
+    @Column(nullable = false, unique = true)
+    var shortKey: String,
     var baseUrl: String,
     var originalUrl: String,
     var expiresAt: Instant,
@@ -38,15 +42,15 @@ class ShortUrlEntity (
     }
 
     fun toDomain() : ShortUrl {
-        return id?.let {
-            ShortUrl.of(
-                id = this.id,
-                shortKey = this.shortKey,
-                baseUrl = this.baseUrl,
-                originalUrl = this.originalUrl,
-                createdAt = this.createdAt,
-                expiresAt = this.expiresAt,
-            )
-        } ?: throw RuntimeException("id가 null인 entity는 domain으로 변환할 수 없습니다.")
+        val entityId = id ?: throw RuntimeException("id가 null인 entity는 domain으로 변환할 수 없습니다.")
+        
+        return ShortUrl.of(
+            id = entityId,
+            shortKey = this.shortKey,
+            baseUrl = this.baseUrl,
+            originalUrl = this.originalUrl,
+            createdAt = this.createdAt,
+            expiresAt = this.expiresAt,
+        )
     }
 }

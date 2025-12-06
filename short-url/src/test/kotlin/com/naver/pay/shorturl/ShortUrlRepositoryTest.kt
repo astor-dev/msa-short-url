@@ -2,7 +2,9 @@ package com.naver.pay.shorturl
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.naver.pay.outbox.OutboxService
+import com.naver.pay.shorturl.jpa.ShortUrlEntity
 import com.naver.pay.shorturl.jpa.ShortUrlJpaRepository
+import com.naver.pay.shorturl.stream.Bindings
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
@@ -10,6 +12,7 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.ValueOperations
 import java.time.Duration
@@ -114,25 +117,90 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
                 verify(exactly = 1) { valueOperations.set(cacheKey, shortUrlJson, ttl) }
             }
         }
+    }
 
-        When("shortKey가 없는 ShortUrl이 주어지면") {
-            val createdAt = Instant.now()
-            val expiresAt = createdAt.plusSeconds(3600)
-            val shortUrlWithNoKey = ShortUrl.of(
-                id = 1,
-                originalUrl = "https://naver.com",
-                shortKey = null,
-                baseUrl = "http://localhost",
-                createdAt = createdAt,
-                expiresAt = expiresAt
-            )
+    Given("createShortUrl 메소드가 주어졌을 때") {
+        val baseUrl = "http://localhost"
+        val originalUrl = "https://naver.com"
+        val ttlSeconds = 3600
+        val createdAt = Instant.now()
+        val expiresAt = createdAt.plusSeconds(ttlSeconds.toLong())
+        val savedEntityId = 1L
+        val savedEntity = ShortUrlEntity(
+            id = savedEntityId,
+            shortKey = "temp",
+            baseUrl = baseUrl,
+            originalUrl = originalUrl,
+            expiresAt = expiresAt,
+            createdAt = createdAt,
+            updatedAt = createdAt,
+            deletedAt = null
+        )
+        val updatedShortKey = ShortUrl.generateShortKey(savedEntityId)
+        val updatedEntity = ShortUrlEntity(
+            id = savedEntityId,
+            shortKey = updatedShortKey,
+            baseUrl = baseUrl,
+            originalUrl = originalUrl,
+            expiresAt = expiresAt,
+            createdAt = createdAt,
+            updatedAt = createdAt,
+            deletedAt = null
+        )
 
-            Then("IllegalStateException을 던진다") {
-                shouldThrow<IllegalStateException> {
-                    shortUrlRepository.cacheShortUrlByShortKey(shortUrlWithNoKey, ttl)
+        When("정상적으로 저장되는 경우") {
+            every { shortUrlJpaRepository.save(any<ShortUrlEntity>()) } returnsMany listOf(savedEntity, updatedEntity)
+            every { outboxService.storeEvent(any(), any()) } returns Unit
+
+            val result = shortUrlRepository.createShortUrl(baseUrl, originalUrl, ttlSeconds)
+
+            Then("ShortUrl을 생성하고 저장한다") {
+                result.shortKey shouldBe updatedShortKey
+                result.originalUrl shouldBe originalUrl
+                verify(exactly = 2) { shortUrlJpaRepository.save(any<ShortUrlEntity>()) }
+                verify(exactly = 1) {
+                    outboxService.storeEvent(
+                        Bindings.SHORT_URL_CREATED,
+                        any()
+                    )
                 }
-                verify(exactly = 0) { objectMapper.writeValueAsString(any()) }
-                verify(exactly = 0) { valueOperations.set("anyKey", "anyValue", 1L) }
+            }
+        }
+
+        When("UUID 충돌이 발생하고 재시도 후 성공하는 경우") {
+            val conflictException = DataIntegrityViolationException("Unique constraint violation")
+            every {
+                shortUrlJpaRepository.save(any())
+            } answers {
+                throw conflictException
+            } andThenAnswer {
+                throw conflictException
+            } andThenAnswer {
+                savedEntity
+            } andThenAnswer {
+                updatedEntity
+            }
+
+            every { outboxService.storeEvent(any(), any()) } returns Unit
+
+            val result = shortUrlRepository.createShortUrl(baseUrl, originalUrl, ttlSeconds)
+
+            Then("재시도 후 성공적으로 저장한다") {
+                result.shortKey shouldBe updatedShortKey
+                verify(exactly = 4) { shortUrlJpaRepository.save(any<ShortUrlEntity>()) }
+            }
+        }
+
+        When("최대 재시도 횟수를 초과하는 경우") {
+            val conflictException = DataIntegrityViolationException("Unique constraint violation")
+            every { shortUrlJpaRepository.save(any<ShortUrlEntity>()) } throws conflictException
+
+            Then("DataIntegrityViolationException을 던진다") {
+                val exception = shouldThrow<DataIntegrityViolationException> {
+                    shortUrlRepository.createShortUrl(baseUrl, originalUrl, ttlSeconds)
+                }
+                exception.message shouldBe "shortKey 생성 실패: 최대 재시도 횟수(3)를 초과했습니다. 원인: ${conflictException.message}"
+                verify(exactly = 3) { shortUrlJpaRepository.save(any<ShortUrlEntity>()) }
             }
         }
     }

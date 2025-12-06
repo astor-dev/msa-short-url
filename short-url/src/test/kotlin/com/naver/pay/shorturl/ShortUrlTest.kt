@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
+
 package com.naver.pay.shorturl
 
 import io.kotest.core.spec.style.BehaviorSpec
@@ -118,45 +120,23 @@ class ShortUrlTest : BehaviorSpec({
         }
     }
 
-    Given("id가 설정된 ShortUrl 인스턴스가 주어졌을 때") {
-        val id = 12345L
-        val baseUrl = "https://short.url"
-        val originalUrl = "https://naver.com/some/long/url"
-        val createdAt = Instant.now()
-        val expiresAt = createdAt.plusSeconds(3600)
-
-        val shortUrlWithId = ShortUrl.of(id, null, baseUrl, originalUrl, createdAt, expiresAt)
-
-        When("generateShortKeyFromId 메소드를 호출하면") {
-            val updatedShortUrl = shortUrlWithId.generateShortKeyFromId()
+    Given("generateShortKey 컴패니언 메소드가 주어졌을 때") {
+        When("id가 존재하는 경우") {
+            val id = 12345L
+            val generatedShortKey = ShortUrl.generateShortKey(id)
             val expectedShortKey = Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT).encode(id.toString().toByteArray())
 
-            Then("id로부터 생성된 shortKey가 설정된다") {
-                updatedShortUrl.shortKey shouldBe expectedShortKey
-            }
-
-            Then("다른 필드는 변경되지 않는다") {
-                updatedShortUrl.id shouldBe id
-                updatedShortUrl.baseUrl shouldBe baseUrl
-                updatedShortUrl.originalUrl shouldBe originalUrl
-                updatedShortUrl.createdAt shouldBe createdAt
-                updatedShortUrl.expiresAt shouldBe expiresAt
+            Then("BASE64 전략으로 생성된 shortKey를 반환한다") {
+                generatedShortKey shouldBe expectedShortKey
             }
         }
-    }
 
-    Given("id가 null인 ShortUrl 인스턴스가 주어졌을 때") {
-        val baseUrl = "https://short.url"
-        val originalUrl = "https://naver.com/some/long/url"
+        When("id가 존재하지 않는 경우") {
+            val generatedShortKey = ShortUrl.generateShortKey(null)
 
-        val shortUrlWithNullId = ShortUrl.generate(null, baseUrl, originalUrl, 3600)
-
-        When("generateShortKeyFromId 메소드를 호출하면") {
-            Then("IllegalStateException 예외가 발생한다") {
-                val exception = assertThrows<IllegalStateException> {
-                    shortUrlWithNullId.generateShortKeyFromId()
-                }
-                exception.message shouldBe "id가 설정되어 있지 않습니다."
+            Then("UUID 전략으로 생성된 shortKey를 반환한다") {
+                generatedShortKey.length shouldBe 32 // UUID에서 하이픈 제거 후 길이
+                generatedShortKey.matches(Regex("[0-9a-fA-F]{32}")) shouldBe true
             }
         }
     }
