@@ -1,4 +1,4 @@
-package com.naver.pay.auth
+package com.naver.pay.filter.auth
 
 /**
  * 경로별 접근 권한 정책을 관리하는 클래스
