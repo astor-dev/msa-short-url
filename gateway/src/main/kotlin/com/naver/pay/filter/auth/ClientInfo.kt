@@ -1,4 +1,4 @@
-package com.naver.pay.auth
+package com.naver.pay.filter.auth
 
 data class ClientInfo(
     val clientId: String,

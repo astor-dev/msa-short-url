@@ -1,5 +1,7 @@
-package com.naver.pay.auth
+package com.naver.pay.filter.auth
 
+import com.naver.pay.filter.util.getClientInfo
+import com.naver.pay.filter.GatewayFilterOrder
 import com.naver.pay.response.ErrorResponseUtil
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.cloud.gateway.filter.GatewayFilterChain
@@ -8,7 +10,6 @@ import org.springframework.core.Ordered
 import org.springframework.stereotype.Component
 import org.springframework.web.server.ServerWebExchange
 import reactor.core.publisher.Mono
-import kotlin.jvm.java
 
 /**
  * URL 접근 권한 확인 필터
@@ -23,11 +24,6 @@ class AuthorizationFilter: GlobalFilter, Ordered {
     private val logger = KotlinLogging.logger(AuthorizationFilter::class.java.name)
     private val pathAuthorizationPolicy = PathAuthorizationPolicy()
 
-    companion object {
-        // 필터 순서: 인증 필터 이후에 실행
-        private const val FILTER_ORDER = -90
-    }
-    
     override fun filter(exchange: ServerWebExchange, chain: GatewayFilterChain): Mono<Void> {
         val request = exchange.request
         val path = request.path.value()
@@ -61,6 +57,6 @@ class AuthorizationFilter: GlobalFilter, Ordered {
         return chain.filter(exchange)
     }
     
-    override fun getOrder(): Int = FILTER_ORDER
+    override fun getOrder(): Int = GatewayFilterOrder.AUTHORIZATION
 }
 

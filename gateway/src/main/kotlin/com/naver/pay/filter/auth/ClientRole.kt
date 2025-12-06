@@ -1,4 +1,4 @@
-package com.naver.pay.auth
+package com.naver.pay.filter.auth
 
 enum class ClientRole {
     ADMIN,     // 모든 API 접근 가능
