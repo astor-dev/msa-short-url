@@ -1,6 +1,6 @@
 package com.naver.pay.controller.exception
 
-import com.naver.pay.exception.ExpiredLinkException
+import com.naver.pay.shorturl.exception.ExpiredLinkException
 import io.kotest.core.extensions.ApplyExtension
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.extensions.spring.SpringExtension

@@ -1,38 +1,116 @@
 package com.naver.pay.shorturl
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.naver.pay.outbox.OutboxService
+import com.naver.pay.shorturl.exception.ExpiredLinkException
 import com.naver.pay.shorturl.jpa.ShortUrlEntity
 import com.naver.pay.shorturl.jpa.ShortUrlJpaRepository
 import com.naver.pay.shorturl.stream.Bindings
 import com.naver.pay.shorturl.stream.ShortUrlCreatedPayload
+import com.naver.pay.shorturl.stream.ShortUrlEventProducer
+import com.naver.pay.util.DistributedLockExecutor
 import jakarta.transaction.Transactional
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Repository
 import java.time.Duration
+import java.time.Instant
+import java.util.concurrent.ThreadLocalRandom
 import kotlin.jvm.optionals.getOrNull
 
 @Repository
 open class ShortUrlRepository(
     private val redisTemplate: RedisTemplate<String, String>,
-    private val objectMapper: ObjectMapper,
     private val outboxService: OutboxService,
-    private val shortUrlJpaRepository: ShortUrlJpaRepository
+    private val shortUrlJpaRepository: ShortUrlJpaRepository,
+    private val distributedLockExecutor: DistributedLockExecutor,
+    private val shortUrlEventProducer: ShortUrlEventProducer
 ) {
-    fun findShortUrlByShortKeyInCache(shortKey: String): ShortUrl? {
-        val cacheKey = "${CacheNames.SHORT_URL_BY_SHORT_KEY}::$shortKey"
-        val cachedValue = redisTemplate.opsForValue().get(cacheKey)
-        val cachedShortUrl = runCatching {
-            objectMapper.readValue(cachedValue, ShortUrl::class.java)
-        }.getOrNull()
-        return cachedShortUrl
+    /**
+     * shortKey로 redirectUrl을 조회합니다.
+     * 
+     * 캐시에서 redirectUrl을 조회하고, 없을 경우 DB에서 조회 후 캐시에 저장합니다.
+     * Cache Stampede 방지를 위해 Jitter(0~60분)를 추가하여 캐싱합니다.
+     * Thundering herd 방지를 위해 조회 로직에 분산락을 사용합니다.
+     * 만료된 링크인 경우 ExpiredLinkException을 발생시키고, 클릭 이벤트를 발행합니다.
+     * 
+     * @param shortKey 조회할 ShortUrl의 shortKey
+     * @param userAgent 사용자 에이전트 (이벤트 발행용)
+     * @param referrer 리퍼러 (이벤트 발행용)
+     * @return 조회된 redirectUrl, 없으면 null
+     * @throws ExpiredLinkException 링크가 만료된 경우
+     */
+    fun getRedirectUrl(shortKey: String, userAgent: String?, referrer: String?): String? {
+        // 1. 캐시에서 redirectUrl 조회
+        val redirectUrl = findRedirectUrlInCache(shortKey)
+            ?: distributedLockExecutor.execute(lockName = CacheNames.SHORT_URL_GET_LOCK, key = shortKey) {
+                // 2-1. 락 획득 후 캐시 재확인
+                var redirectUrl = findRedirectUrlInCache(shortKey)
+
+                // 2-2. 여전히 캐시 미스 → DB 조회 및 캐시 저장
+                if (redirectUrl == null) {
+                    val shortUrlEntity = findByShortKey(shortKey)
+                    val shortUrl = shortUrlEntity?.toDomain()
+
+                    if (shortUrl != null) {
+                        // 만료 체크
+                        if (shortUrl.expiresAt <= Instant.now()) {
+                            throw ExpiredLinkException(shortUrl.originalUrl)
+                        }
+
+                        redirectUrl = shortUrl.originalUrl
+                        val ttl = calculateDynamicTtl()
+                        cacheRedirectUrlByShortKey(shortKey, redirectUrl, ttl)
+                    }
+                }
+                redirectUrl
+            }
+        // 3. 클릭 이벤트 발행
+        if (redirectUrl != null) {
+            shortUrlEventProducer.publishUrlClicked(
+                shortKey = shortKey,
+                userAgent = userAgent ?: "Unknown",
+                referrer = referrer ?: "Direct",
+            )
+        }
+        return redirectUrl
+
     }
 
-    fun cacheShortUrlByShortKey(shortUrl: ShortUrl, ttl: Duration) {
-        val cacheKey = "${CacheNames.SHORT_URL_BY_SHORT_KEY}::${shortUrl.shortKey}"
-        val jsonString = objectMapper.writeValueAsString(shortUrl)
-        redisTemplate.opsForValue().set(cacheKey, jsonString, ttl)
+    /**
+     * 캐시에서 redirectUrl을 조회합니다.
+     * 
+     * @param shortKey 조회할 ShortUrl의 shortKey
+     * @return 캐시된 redirectUrl, 없으면 null
+     */
+    private fun findRedirectUrlInCache(shortKey: String): String? {
+        val cacheKey = "${CacheNames.REDIRECT_URL_BY_SHORT_KEY}::$shortKey"
+        return redisTemplate.opsForValue().get(cacheKey)
+    }
+
+    /**
+     * redirectUrl을 캐시에 저장합니다.
+     * 
+     * @param shortKey ShortUrl의 shortKey
+     * @param redirectUrl 저장할 redirectUrl
+     * @param ttl 캐시 TTL
+     */
+    private fun cacheRedirectUrlByShortKey(shortKey: String, redirectUrl: String, ttl: Duration) {
+        val cacheKey = "${CacheNames.REDIRECT_URL_BY_SHORT_KEY}::$shortKey"
+        redisTemplate.opsForValue().set(cacheKey, redirectUrl, ttl)
+    }
+
+    /**
+     * 기본 TTL(1일) + Jitter(0~60분)을 적용한 Duration을 계산합니다.
+     * 
+     * @return 계산된 TTL Duration
+     */
+    private fun calculateDynamicTtl(): Duration {
+        val ttlSeconds = 86400L // 기본 1일 (24시간)
+        val jitterRangeSeconds = 3600L // Jitter 범위 1시간
+        val jitter = ThreadLocalRandom.current().nextLong(jitterRangeSeconds)
+        val standardTtlSeconds = ttlSeconds + jitter
+        return Duration.ofSeconds(standardTtlSeconds)
     }
 
     /**
@@ -131,7 +209,35 @@ open class ShortUrlRepository(
         return shortUrlJpaRepository.findByShortKey(shortKey).getOrNull()
     }
 
-    fun findByOriginalUrl(shortKey: String): ShortUrlEntity? {
-        return shortUrlJpaRepository.findByOriginalUrl(shortKey).getOrNull()
+    fun findByOriginalUrl(originalUrl: String): ShortUrlEntity? {
+        return shortUrlJpaRepository.findByOriginalUrl(originalUrl).getOrNull()
+    }
+
+    /**
+     * shortKey로 ShortUrl 도메인 객체를 조회합니다.
+     * 
+     * 통계 조회 등에서 ShortUrl 도메인 객체가 필요한 경우 사용합니다.
+     * 주된 조회 경로가 아니므로 캐싱이나 분산 락 없이 단순 DB 조회만 수행합니다.
+     * 
+     * @param shortKey 조회할 ShortUrl의 shortKey
+     * @return 조회된 ShortUrl 도메인 객체, 없으면 null
+     */
+    fun findShortUrlByShortKey(shortKey: String): ShortUrl? {
+        return findByShortKey(shortKey)?.toDomain()
+    }
+
+    /**
+     * originalUrl로 ShortUrl을 조회합니다.
+     * 
+     * Cacheable 어노테이션을 사용하여 자동으로 캐싱 처리합니다.
+     * 캐시에 없을 경우 DB에서 조회 후 캐시에 저장합니다.
+     * 주된 조회 경로가 아니기에 DB 부하 방지 보다는 락 비용이 크다고 여겨 별도의 처리를 하지 않습니다.
+     * 
+     * @param originalUrl 조회할 ShortUrl의 originalUrl
+     * @return 조회된 ShortUrl 도메인 객체, 없으면 null
+     */
+    @Cacheable(cacheNames = [CacheNames.SHORT_URL_BY_ORIGINAL], key = "#originalUrl")
+    open fun findShortUrlByOriginalUrl(originalUrl: String): ShortUrl? {
+        return findByOriginalUrl(originalUrl)?.toDomain()
     }
 }

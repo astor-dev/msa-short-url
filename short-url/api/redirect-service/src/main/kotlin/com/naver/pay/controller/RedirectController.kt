@@ -1,6 +1,6 @@
 package com.naver.pay.controller
 
-import com.naver.pay.service.RedirectService
+import com.naver.pay.shorturl.ShortUrlService
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -14,7 +14,7 @@ import java.net.URI
 @RestController
 @RequestMapping("v1/urls")
 class RedirectController(
-    private val redirectService: RedirectService
+    private val shortUrlService: ShortUrlService
 ) {
 
     @GetMapping("/{shortKey}")
@@ -23,7 +23,7 @@ class RedirectController(
         @RequestHeader("User-Agent", required = false) userAgent: String?,
         @RequestHeader("Referer", required = false) referrer: String?
     ): ResponseEntity<Void> {
-        val redirectUrl = redirectService.getRedirectUrl(
+        val redirectUrl = shortUrlService.getRedirectUrl(
             shortKey = shortKey,
             userAgent = userAgent,
             referrer = referrer

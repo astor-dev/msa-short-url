@@ -1,6 +1,6 @@
 package com.naver.pay.controller.exception
 
-import com.naver.pay.exception.ExpiredLinkException
+import com.naver.pay.shorturl.exception.ExpiredLinkException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler

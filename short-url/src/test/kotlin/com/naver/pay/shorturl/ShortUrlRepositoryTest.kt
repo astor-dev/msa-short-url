@@ -1,10 +1,12 @@
 package com.naver.pay.shorturl
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.naver.pay.outbox.OutboxService
+import com.naver.pay.shorturl.exception.ExpiredLinkException
 import com.naver.pay.shorturl.jpa.ShortUrlEntity
 import com.naver.pay.shorturl.jpa.ShortUrlJpaRepository
 import com.naver.pay.shorturl.stream.Bindings
+import com.naver.pay.shorturl.stream.ShortUrlEventProducer
+import com.naver.pay.util.DistributedLockExecutor
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
@@ -17,14 +19,23 @@ import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.ValueOperations
 import java.time.Duration
 import java.time.Instant
+import java.time.temporal.ChronoUnit
+import java.util.Optional
 
 class ShortUrlRepositoryTest: BehaviorSpec ({
     val redisTemplate = mockk<RedisTemplate<String, String>>()
-    val objectMapper = mockk<ObjectMapper>()
     val valueOperations = mockk<ValueOperations<String, String>>()
     val outboxService = mockk<OutboxService>()
-    val shortUrlJpaRepository = mockk< ShortUrlJpaRepository>()
-    val shortUrlRepository = ShortUrlRepository(redisTemplate, objectMapper, outboxService, shortUrlJpaRepository)
+    val shortUrlJpaRepository = mockk<ShortUrlJpaRepository>()
+    val distributedLockExecutor = mockk<DistributedLockExecutor>()
+    val shortUrlEventProducer = mockk<ShortUrlEventProducer>()
+    val shortUrlRepository = ShortUrlRepository(
+        redisTemplate = redisTemplate,
+        outboxService = outboxService,
+        shortUrlJpaRepository = shortUrlJpaRepository,
+        distributedLockExecutor = distributedLockExecutor,
+        shortUrlEventProducer = shortUrlEventProducer
+    )
 
     beforeTest {
         every { redisTemplate.opsForValue() } returns valueOperations
@@ -34,87 +45,237 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
         clearAllMocks()
     }
 
-    Given("findShortUrlByShortKey 메소드가 주어졌을 때") {
+    Given("getRedirectUrl 메소드가 주어졌을 때") {
         val shortKey = "testKey"
-        val cacheKey = "${CacheNames.SHORT_URL_BY_SHORT_KEY}::$shortKey"
-        val createdAt = Instant.now()
-        val expiresAt = createdAt.plusSeconds(3600)
-        val shortUrl = ShortUrl.of(
-            id = 1,
-            originalUrl = "https://naver.com",
+        val originalUrl = "https://naver.com"
+        val baseUrl = "http://localhost"
+        val userAgent = "test-agent"
+        val referrer = "test-referrer"
+        val now = Instant.now().truncatedTo(ChronoUnit.SECONDS)
+        val expiresAt = now.plusSeconds(86400)
+        val redirectUrlCacheKey = "${CacheNames.REDIRECT_URL_BY_SHORT_KEY}::$shortKey"
+        val shortUrlEntity = ShortUrlEntity(
+            id = 1L,
             shortKey = shortKey,
-            baseUrl = "http://localhost",
-            createdAt = createdAt,
-            expiresAt = expiresAt
+            baseUrl = baseUrl,
+            originalUrl = originalUrl,
+            expiresAt = expiresAt,
+            createdAt = now,
+            updatedAt = now,
+            deletedAt = null
         )
-        val shortUrlJson = """{"id":null,"shortKey":"testKey","originalUrl":"https://naver.com","shortUrl":"http://localhost/testKey","createdAt":$createdAt,"expiresAt":$expiresAt}"""
 
+        When("캐시에 redirectUrl이 존재하는 경우") {
+            every { valueOperations.get(redirectUrlCacheKey) } returns originalUrl
+            every {
+                shortUrlEventProducer.publishUrlClicked(
+                    shortKey = shortKey,
+                    referrer = referrer,
+                    userAgent = userAgent
+                )
+            } returns Unit
 
-        When("캐시에 값이 존재하고 정상적인 JSON일 경우") {
-            every { valueOperations.get(cacheKey) } returns shortUrlJson
-            every { objectMapper.readValue(shortUrlJson, ShortUrl::class.java) } returns shortUrl
+            val result = shortUrlRepository.getRedirectUrl(shortKey, userAgent, referrer)
 
-            val result = shortUrlRepository.findShortUrlByShortKeyInCache(shortKey)
-
-            Then("역직렬화된 ShortUrl 객체를 반환한다") {
-                result shouldBe shortUrl
-                verify(exactly = 1) { valueOperations.get(cacheKey) }
-                verify(exactly = 1) { objectMapper.readValue(shortUrlJson, ShortUrl::class.java) }
+            Then("캐시된 redirectUrl을 반환하고 이벤트를 발행해야 한다") {
+                result shouldBe originalUrl
+                verify(exactly = 1) { valueOperations.get(redirectUrlCacheKey) }
+                verify(exactly = 0) {
+                    distributedLockExecutor.execute(
+                        lockName = any(),
+                        key = any(),
+                        block = any()
+                    )
+                }
+                verify(exactly = 1) {
+                    shortUrlEventProducer.publishUrlClicked(
+                        shortKey = shortKey,
+                        referrer = referrer,
+                        userAgent = userAgent
+                    )
+                }
             }
         }
 
-        When("캐시에 값이 존재하지 않을 경우") {
-            every { valueOperations.get(cacheKey) } returns null
+        When("캐시에 redirectUrl이 없고, 락 획득 후 캐시 재확인 시에도 없고, DB에 존재하는 경우") {
+            every { valueOperations.get(redirectUrlCacheKey) } returns null
+            every { shortUrlJpaRepository.findByShortKey(shortKey) } returns Optional.of(shortUrlEntity)
+            every { valueOperations.set(any(), any(), any<Duration>()) } returns Unit
+            every {
+                distributedLockExecutor.execute<String?>(
+                    lockName = CacheNames.SHORT_URL_GET_LOCK,
+                    key = shortKey,
+                    block = any()
+                )
+            } answers {
+                val block = lastArg<() -> String?>()
+                block.invoke()
+            }
+            every {
+                shortUrlEventProducer.publishUrlClicked(
+                    shortKey = shortKey,
+                    referrer = referrer,
+                    userAgent = userAgent
+                )
+            } returns Unit
 
-            val result = shortUrlRepository.findShortUrlByShortKeyInCache(shortKey)
+            val result = shortUrlRepository.getRedirectUrl(shortKey, userAgent, referrer)
 
-            Then("null을 반환한다") {
+            Then("DB에서 조회 후 캐시에 저장하고 redirectUrl을 반환하고 이벤트를 발행해야 한다") {
+                result shouldBe originalUrl
+                verify(exactly = 2) { valueOperations.get(redirectUrlCacheKey) }
+                verify(exactly = 1) {
+                    distributedLockExecutor.execute(
+                        lockName = CacheNames.SHORT_URL_GET_LOCK,
+                        key = shortKey,
+                        block = any()
+                    )
+                }
+                verify(exactly = 1) { shortUrlJpaRepository.findByShortKey(shortKey) }
+                verify(exactly = 1) { valueOperations.set(redirectUrlCacheKey, originalUrl, any<Duration>()) }
+                verify(exactly = 1) {
+                    shortUrlEventProducer.publishUrlClicked(
+                        shortKey = shortKey,
+                        referrer = referrer,
+                        userAgent = userAgent
+                    )
+                }
+            }
+        }
+
+        When("캐시에 redirectUrl이 없고, 락 획득 후 캐시 재확인 시에는 있는 경우") {
+            every { valueOperations.get(redirectUrlCacheKey) } returnsMany listOf(null, originalUrl)
+            every {
+                distributedLockExecutor.execute<String?>(
+                    lockName = CacheNames.SHORT_URL_GET_LOCK,
+                    key = shortKey,
+                    block = any()
+                )
+            } answers {
+                val block = lastArg<() -> String?>()
+                block.invoke()
+            }
+            every {
+                shortUrlEventProducer.publishUrlClicked(
+                    shortKey = shortKey,
+                    referrer = referrer,
+                    userAgent = userAgent
+                )
+            } returns Unit
+
+            val result = shortUrlRepository.getRedirectUrl(shortKey, userAgent, referrer)
+
+            Then("락 획득 후 캐시에서 조회한 redirectUrl을 반환하고 이벤트를 발행해야 한다") {
+                result shouldBe originalUrl
+                verify(exactly = 2) { valueOperations.get(redirectUrlCacheKey) }
+                verify(exactly = 1) {
+                    distributedLockExecutor.execute(
+                        lockName = CacheNames.SHORT_URL_GET_LOCK,
+                        key = shortKey,
+                        block = any()
+                    )
+                }
+                verify(exactly = 0) { shortUrlJpaRepository.findByShortKey(any()) }
+                verify(exactly = 0) { valueOperations.set(any(), any(), any<Duration>()) }
+                verify(exactly = 1) {
+                    shortUrlEventProducer.publishUrlClicked(
+                        shortKey = shortKey,
+                        referrer = referrer,
+                        userAgent = userAgent
+                    )
+                }
+            }
+        }
+
+        When("캐시에도 DB에도 ShortUrl이 존재하지 않는 경우") {
+            every { valueOperations.get(redirectUrlCacheKey) } returns null
+            every { shortUrlJpaRepository.findByShortKey(shortKey) } returns Optional.empty()
+            every {
+                distributedLockExecutor.execute<String?>(
+                    lockName = CacheNames.SHORT_URL_GET_LOCK,
+                    key = shortKey,
+                    block = any()
+                )
+            } answers {
+                val block = lastArg<() -> String?>()
+                block.invoke()
+            }
+
+            val result = shortUrlRepository.getRedirectUrl(shortKey, userAgent, referrer)
+
+            Then("null을 반환하고 이벤트를 발행하지 않아야 한다") {
                 result shouldBe null
-                verify(exactly = 1) { valueOperations.get(cacheKey) }
-                verify(exactly = 0) { objectMapper.readValue(cacheKey, eq(ShortUrl::class.java)) }
+                verify(exactly = 2) { valueOperations.get(redirectUrlCacheKey) }
+                verify(exactly = 1) {
+                    distributedLockExecutor.execute<String?>(
+                        lockName = CacheNames.SHORT_URL_GET_LOCK,
+                        key = shortKey,
+                        block = any()
+                    )
+                }
+                verify(exactly = 1) { shortUrlJpaRepository.findByShortKey(shortKey) }
+                verify(exactly = 0) { valueOperations.set(any(), any(), any<Duration>()) }
+                verify(exactly = 0) {
+                    shortUrlEventProducer.publishUrlClicked(any(), any(), any())
+                }
             }
         }
 
-        When("캐시의 값이 비정상적인 JSON일 경우") {
-            val invalidJson = "invalid json"
-            every { valueOperations.get(cacheKey) } returns invalidJson
-            every { objectMapper.readValue(invalidJson, ShortUrl::class.java) } throws Exception()
+        When("만료된 링크인 경우") {
+            val expiredEntity = ShortUrlEntity(
+                id = 1L,
+                shortKey = shortKey,
+                baseUrl = baseUrl,
+                originalUrl = originalUrl,
+                expiresAt = now.minusSeconds(3600),
+                createdAt = now.minusSeconds(7200),
+                updatedAt = now,
+                deletedAt = null
+            )
+            every { valueOperations.get(redirectUrlCacheKey) } returns null
+            every { shortUrlJpaRepository.findByShortKey(shortKey) } returns Optional.of(expiredEntity)
+            every {
+                distributedLockExecutor.execute<String?>(
+                    lockName = CacheNames.SHORT_URL_GET_LOCK,
+                    key = shortKey,
+                    block = any()
+                )
+            } answers {
+                val block = lastArg<() -> String?>()
+                block.invoke()
+            }
 
-            val result = shortUrlRepository.findShortUrlByShortKeyInCache(shortKey)
-
-            Then("null을 반환한다") {
-                result shouldBe null
-                verify(exactly = 1) { valueOperations.get(cacheKey) }
-                verify(exactly = 1) { objectMapper.readValue(invalidJson, ShortUrl::class.java) }
+            Then("ExpiredLinkException을 던지고 이벤트를 발행하지 않아야 한다") {
+                shouldThrow<ExpiredLinkException> {
+                    shortUrlRepository.getRedirectUrl(shortKey, userAgent, referrer)
+                }
+                verify(exactly = 0) {
+                    shortUrlEventProducer.publishUrlClicked(any(), any(), any())
+                }
             }
         }
-    }
 
-    Given("cacheShortUrlByShortKey 메소드가 주어졌을 때") {
-        val shortKey = "testKey"
-        val createdAt = Instant.now()
-        val expiresAt = createdAt.plusSeconds(3600)
-        val shortUrl = ShortUrl.of(
-            id = 1,
-            originalUrl = "https://naver.com",
-            shortKey = shortKey,
-            baseUrl = "http://localhost",
-            createdAt = createdAt,
-            expiresAt = expiresAt
-        )
-        val cacheKey = "${CacheNames.SHORT_URL_BY_SHORT_KEY}::$shortKey"
-        val ttl = Duration.ofMinutes(10)
-        val shortUrlJson = """{"id":1,"shortKey":"testKey","originalUrl":"https://naver.com","shortUrl":"http://localhost/testKey","createdAt":"${shortUrl.createdAt}","expiresAt":"${shortUrl.expiresAt}"}"""
+        When("userAgent와 referrer가 null인 경우") {
+            every { valueOperations.get(redirectUrlCacheKey) } returns originalUrl
+            every {
+                shortUrlEventProducer.publishUrlClicked(
+                    shortKey = shortKey,
+                    referrer = "Direct",
+                    userAgent = "Unknown"
+                )
+            } returns Unit
 
-        When("유효한 ShortUrl과 TTL이 주어지면") {
-            every { objectMapper.writeValueAsString(shortUrl) } returns shortUrlJson
-            every { valueOperations.set(cacheKey, shortUrlJson, ttl) } returns Unit
+            val result = shortUrlRepository.getRedirectUrl(shortKey, null, null)
 
-            shortUrlRepository.cacheShortUrlByShortKey(shortUrl, ttl)
-
-            Then("Redis에 값을 저장해야 한다") {
-                verify(exactly = 1) { objectMapper.writeValueAsString(shortUrl) }
-                verify(exactly = 1) { valueOperations.set(cacheKey, shortUrlJson, ttl) }
+            Then("기본값으로 이벤트를 발행해야 한다") {
+                result shouldBe originalUrl
+                verify(exactly = 1) {
+                    shortUrlEventProducer.publishUrlClicked(
+                        shortKey = shortKey,
+                        referrer = "Direct",
+                        userAgent = "Unknown"
+                    )
+                }
             }
         }
     }

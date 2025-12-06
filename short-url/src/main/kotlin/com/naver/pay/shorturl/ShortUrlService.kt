@@ -1,21 +1,18 @@
-package com.naver.pay.service
+package com.naver.pay.shorturl
 
-import com.naver.pay.controller.UrlResponseDto
-import com.naver.pay.shorturl.CacheNames
-import com.naver.pay.shorturl.ShortUrlCacheableService
-import com.naver.pay.shorturl.ShortUrlRepository
+import com.naver.pay.shorturl.exception.ExpiredLinkException
 import com.naver.pay.util.DistributedLockExecutor
 import org.springframework.stereotype.Service
-
 
 @Service
 class ShortUrlService(
     private val shortUrlRepository: ShortUrlRepository,
-    private val shortUrlCacheableService: ShortUrlCacheableService,
     private val distributedLockExecutor: DistributedLockExecutor
 ) {
+    companion object {
+        const val BASE_URL = "https://short.naver.com"
+    }
 
-    final val BASE_URL = "https://short.naver.com"
 
     /**
      * originalUrl에 해당하는 shortUrl을 생성합니다.
@@ -26,22 +23,32 @@ class ShortUrlService(
      * @param ttlSeconds 만료 시간
      * @return UrlResponseDto
      */
-    fun create(originalUrl: String, ttlSeconds: Int): UrlResponseDto {
+    fun create(originalUrl: String, ttlSeconds: Int): ShortUrl {
         return distributedLockExecutor.execute(
             lockName = CacheNames.SHORT_URL_CREATE_LOCK,
             key = originalUrl
         ) {
-            val existing = shortUrlCacheableService.findShortUrlByOriginalUrl(originalUrl)?.toDto()
+            val existing = shortUrlRepository.findShortUrlByOriginalUrl(originalUrl)
             if(existing == null) {
                 val shortUrl = shortUrlRepository.createShortUrl(
                     baseUrl = BASE_URL,
                     originalUrl = originalUrl,
                     ttlSeconds = ttlSeconds
                 )
-                shortUrl.toDto()
+                shortUrl
             } else {
                 existing
             }
         }
+    }
+
+    /**
+     * 주어진 shortKey에 해당하는 원본 URL String을 반환합니다.
+     *
+     * @throws ExpiredLinkException 해당 링크가 만료된 경우
+     * @return String 원본 URL
+     */
+    fun getRedirectUrl(shortKey: String, userAgent: String?, referrer: String?): String? {
+        return shortUrlRepository.getRedirectUrl(shortKey, userAgent, referrer)
     }
 }

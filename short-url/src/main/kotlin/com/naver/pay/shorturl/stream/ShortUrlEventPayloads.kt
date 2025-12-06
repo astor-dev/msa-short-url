@@ -6,7 +6,7 @@ data class ShortUrlClickedPayload (
     val shortKey: String,
     val referrer: String = "Direct",
     val userAgent: String = "Unknown",
-    val clickedAt: Instant
+    val clickedAt: Instant = Instant.now()
 )
 
 data class ShortUrlCreatedPayload (

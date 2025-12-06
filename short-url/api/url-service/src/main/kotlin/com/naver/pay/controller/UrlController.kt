@@ -1,6 +1,7 @@
 package com.naver.pay.controller
 
-import com.naver.pay.service.ShortUrlService
+import com.naver.pay.converter.toDto
+import com.naver.pay.shorturl.ShortUrlService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -22,7 +23,7 @@ class UrlController(
                 shortUrlService.create(
                     originalUrl = requestDto.originalUrl,
                     ttlSeconds = requestDto.ttlSeconds
-                )
+                ).toDto()
             )
     }
 }

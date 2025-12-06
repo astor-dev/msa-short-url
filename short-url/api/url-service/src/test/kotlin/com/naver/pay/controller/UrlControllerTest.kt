@@ -1,7 +1,8 @@
 package com.naver.pay.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.naver.pay.service.ShortUrlService
+import com.naver.pay.shorturl.ShortUrl
+import com.naver.pay.shorturl.ShortUrlService
 import com.ninjasquad.springmockk.MockkBean
 import io.kotest.core.extensions.ApplyExtension
 import io.kotest.core.spec.style.BehaviorSpec
@@ -12,6 +13,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.post
+import java.time.Instant
 
 @ApplyExtension(SpringExtension::class)
 @WebMvcTest(UrlController::class)
@@ -27,13 +29,15 @@ class UrlControllerTest: BehaviorSpec() {
             When("유효한 URL로 단축을 요청하면") {
                 val originalUrl = "https://naver.com"
                 val ttlSeconds = 60
+                val now = Instant.now()
                 val requestDto = UrlRequestDto(originalUrl = originalUrl, ttlSeconds = ttlSeconds)
-                val urlResponseDto = UrlResponseDto(
+                val urlResponseDto = ShortUrl.of(
+                    id = 1L,
                     shortKey = "testKey",
-                    shortUrl = "http://localhost/testKey",
+                    baseUrl = "http://localhost",
                     originalUrl = originalUrl,
-                    createdAt = "2025-01-01T00:00:00Z", // Dummy value
-                    expiresAt = "2025-01-01T00:00:00Z" // Dummy value
+                    createdAt = now,
+                    expiresAt = now.plusSeconds(60)
                 )
                 every { shortUrlService.create(originalUrl, ttlSeconds) } returns urlResponseDto
 

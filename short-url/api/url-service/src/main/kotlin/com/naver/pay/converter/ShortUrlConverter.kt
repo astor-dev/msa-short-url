@@ -1,4 +1,4 @@
-package com.naver.pay.service
+package com.naver.pay.converter
 
 import com.naver.pay.controller.UrlResponseDto
 import com.naver.pay.shorturl.ShortUrl
