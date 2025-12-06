@@ -1,11 +1,17 @@
 server:
   port: 8080
 
+security:
+  hmac:
+    secret: "naverpay-externship"
+
 spring:
   data:
     redis:
       host: redis
       port: 6379
+      repositories:
+        enabled: false
   cloud:
     gateway:
       server:
