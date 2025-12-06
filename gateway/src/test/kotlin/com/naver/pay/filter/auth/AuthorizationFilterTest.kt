@@ -48,7 +48,9 @@ class AuthorizationFilterTest : BehaviorSpec({
         )
         
         When("USER 역할로 USER 권한이 필요한 경로에 접근하면") {
-            val request = MockServerHttpRequest.get("/api/v1/urls").build()
+            val request = MockServerHttpRequest.get("/api/v1/urls")
+                .header(ClientIdFilter.CLIENT_ID_HEADER, userClientInfo.clientId)
+                .build()
             val exchange = MockServerWebExchange.from(request)
             exchange.attributes[ApiKeyAuthenticationFilter.CLIENT_INFO_ATTRIBUTE] = userClientInfo
             val chain = mockk<GatewayFilterChain> {
@@ -66,7 +68,9 @@ class AuthorizationFilterTest : BehaviorSpec({
         }
         
         When("ADMIN 역할로 ADMIN 권한이 필요한 통계 경로에 접근하면") {
-            val request = MockServerHttpRequest.get("/api/v1/urls/testKey/statistics").build()
+            val request = MockServerHttpRequest.get("/api/v1/urls/testKey/statistics")
+                .header(ClientIdFilter.CLIENT_ID_HEADER, adminClientInfo.clientId)
+                .build()
             val exchange = MockServerWebExchange.from(request)
             exchange.attributes[ApiKeyAuthenticationFilter.CLIENT_INFO_ATTRIBUTE] = adminClientInfo
             val chain = mockk<GatewayFilterChain> {
@@ -84,8 +88,14 @@ class AuthorizationFilterTest : BehaviorSpec({
         }
         
         When("ANONYMOUS 역할로 리다이렉트 경로에 접근하면") {
-            val anonymousClientInfo = ClientInfo.createAnonymous()
-            val request = MockServerHttpRequest.get("/testKey").build()
+            val anonymousClientId = "test-anonymous-client-id"
+            val anonymousClientInfo = ClientInfo(
+                clientId = anonymousClientId,
+                role = ClientRole.ANONYMOUS
+            )
+            val request = MockServerHttpRequest.get("/testKey")
+                .header(ClientIdFilter.CLIENT_ID_HEADER, anonymousClientId)
+                .build()
             val exchange = MockServerWebExchange.from(request)
             exchange.attributes[ApiKeyAuthenticationFilter.CLIENT_INFO_ATTRIBUTE] = anonymousClientInfo
             val chain = mockk<GatewayFilterChain> {
@@ -105,8 +115,14 @@ class AuthorizationFilterTest : BehaviorSpec({
     
     Given("권한이 부족한 클라이언트가 주어졌을 때") {
         When("ANONYMOUS 역할로 USER 권한이 필요한 경로에 접근하면") {
-            val anonymousClientInfo = ClientInfo.createAnonymous()
-            val request = MockServerHttpRequest.get("/api/v1/urls").build()
+            val anonymousClientId = "test-anonymous-client-id"
+            val anonymousClientInfo = ClientInfo(
+                clientId = anonymousClientId,
+                role = ClientRole.ANONYMOUS
+            )
+            val request = MockServerHttpRequest.get("/api/v1/urls")
+                .header(ClientIdFilter.CLIENT_ID_HEADER, anonymousClientId)
+                .build()
             val exchange = MockServerWebExchange.from(request)
             exchange.attributes[ApiKeyAuthenticationFilter.CLIENT_INFO_ATTRIBUTE] = anonymousClientInfo
             val chain = mockk<GatewayFilterChain>()
@@ -131,7 +147,9 @@ class AuthorizationFilterTest : BehaviorSpec({
                 clientId = "test-user",
                 role = ClientRole.USER
             )
-            val request = MockServerHttpRequest.get("/api/v1/urls/testKey/statistics").build()
+            val request = MockServerHttpRequest.get("/api/v1/urls/testKey/statistics")
+                .header(ClientIdFilter.CLIENT_ID_HEADER, userClientInfo.clientId)
+                .build()
             val exchange = MockServerWebExchange.from(request)
             exchange.attributes[ApiKeyAuthenticationFilter.CLIENT_INFO_ATTRIBUTE] = userClientInfo
             val chain = mockk<GatewayFilterChain>()
@@ -152,8 +170,14 @@ class AuthorizationFilterTest : BehaviorSpec({
         }
         
         When("ANONYMOUS 역할로 ADMIN 권한이 필요한 통계 경로에 접근하면") {
-            val anonymousClientInfo = ClientInfo.createAnonymous()
-            val request = MockServerHttpRequest.get("/api/v1/statistics/test").build()
+            val anonymousClientId = "test-anonymous-client-id"
+            val anonymousClientInfo = ClientInfo(
+                clientId = anonymousClientId,
+                role = ClientRole.ANONYMOUS
+            )
+            val request = MockServerHttpRequest.get("/api/v1/statistics/test")
+                .header(ClientIdFilter.CLIENT_ID_HEADER, anonymousClientId)
+                .build()
             val exchange = MockServerWebExchange.from(request)
             exchange.attributes[ApiKeyAuthenticationFilter.CLIENT_INFO_ATTRIBUTE] = anonymousClientInfo
             val chain = mockk<GatewayFilterChain>()
@@ -179,7 +203,9 @@ class AuthorizationFilterTest : BehaviorSpec({
             clientId = "test-user",
             role = ClientRole.USER
         )
-        val request = MockServerHttpRequest.get("/actuator/health").build()
+        val request = MockServerHttpRequest.get("/actuator/health")
+            .header(ClientIdFilter.CLIENT_ID_HEADER, userClientInfo.clientId)
+            .build()
         val exchange = MockServerWebExchange.from(request)
         exchange.attributes[ApiKeyAuthenticationFilter.CLIENT_INFO_ATTRIBUTE] = userClientInfo
         val chain = mockk<GatewayFilterChain> {

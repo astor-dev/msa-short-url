@@ -17,16 +17,16 @@ import reactor.core.publisher.Mono
  */
 @Service
 class ClientLookupService(
-    private val hmacProperties: HmacProperties
+    hmacProperties: HmacProperties
 ) {
     
     private val logger = KotlinLogging.logger(ClientLookupService::class.java.name)
 
     private val mockClientMap = mapOf(
-        "admin-api-key-12345" to ClientInfo(hmacSha256("admin-client-001", hmacProperties), ClientRole.ADMIN),
-        "user-api-key-12345" to ClientInfo(hmacSha256("user-client-001", hmacProperties), ClientRole.USER),
-        "test-admin-key" to ClientInfo(hmacSha256("test-admin-001", hmacProperties), ClientRole.ADMIN),
-        "test-user-key" to ClientInfo(hmacSha256("test-user-001", hmacProperties), ClientRole.USER),
+        hmacSha256("admin-api-key-12345", hmacProperties) to ClientRole.ADMIN,
+        hmacSha256("user-api-key-12345", hmacProperties) to ClientRole.USER,
+        hmacSha256("test-admin-key", hmacProperties) to ClientRole.ADMIN,
+        hmacSha256("test-user-key", hmacProperties) to ClientRole.USER,
     )
     
     /**
@@ -37,12 +37,13 @@ class ClientLookupService(
      * @param hashedApiKey HMAC256 해시된 API KEY
      * @return ClientInfo
      */
-    fun lookupClientInfo(hashedApiKey: String): Mono<ClientInfo> {
+    fun lookupClientInfo(hashedApiKey: String, clientId: String): Mono<ClientInfo> {
         logger.debug { "클라이언트 정보 조회 시작: apiKey=${MaskUtil.maskApiKey(hashedApiKey)}" }
         
         return Mono.fromCallable {
-            mockClientMap[hashedApiKey]
+            ClientInfo(clientId, mockClientMap[hashedApiKey]
                 ?: throw ClientNotFoundException("클라이언트를 찾을 수 없습니다. apiKey=${MaskUtil.maskApiKey(hashedApiKey)}")
+            )
         }
         .doOnSuccess { clientInfo ->
             logger.debug { "클라이언트 정보 조회 성공: clientId=${clientInfo.clientId}, role=${clientInfo.role}" }

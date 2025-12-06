@@ -57,8 +57,12 @@ class ApiKeyAuthenticationFilterTest : BehaviorSpec({
     }
     
     Given("API Key가 없는 요청이 주어졌을 때") {
+        val anonymousClientId = "test-anonymous-client-id"
+        
         When("Authorization 헤더가 없으면") {
-            val request = MockServerHttpRequest.get("/api/v1/urls").build()
+            val request = MockServerHttpRequest.get("/api/v1/urls")
+                .header(ClientIdFilter.CLIENT_ID_HEADER, anonymousClientId)
+                .build()
             val exchange = MockServerWebExchange.from(request)
             val chain = mockk<GatewayFilterChain> {
                 every { filter(any()) } returns Mono.empty()
@@ -72,12 +76,16 @@ class ApiKeyAuthenticationFilterTest : BehaviorSpec({
                 
                 verify(exactly = 1) { chain.filter(exchange) }
                 val clientInfo = exchange.attributes[ApiKeyAuthenticationFilter.CLIENT_INFO_ATTRIBUTE] as? ClientInfo
-                clientInfo shouldBe ClientInfo.createAnonymous()
+                clientInfo shouldBe ClientInfo(
+                    clientId = anonymousClientId,
+                    role = ClientRole.ANONYMOUS
+                )
             }
         }
         
         When("Authorization 헤더가 비어있으면") {
             val request = MockServerHttpRequest.get("/api/v1/urls")
+                .header(ClientIdFilter.CLIENT_ID_HEADER, anonymousClientId)
                 .header(HttpHeaders.AUTHORIZATION, "")
                 .build()
             val exchange = MockServerWebExchange.from(request)
@@ -93,20 +101,25 @@ class ApiKeyAuthenticationFilterTest : BehaviorSpec({
                 
                 verify(exactly = 1) { chain.filter(exchange) }
                 val clientInfo = exchange.attributes[ApiKeyAuthenticationFilter.CLIENT_INFO_ATTRIBUTE] as? ClientInfo
-                clientInfo shouldBe ClientInfo.createAnonymous()
+                clientInfo shouldBe ClientInfo(
+                    clientId = anonymousClientId,
+                    role = ClientRole.ANONYMOUS
+                )
             }
         }
     }
     
     Given("API Key가 있는 요청이 주어졌을 때") {
         val apiKey = "test-api-key"
+        val clientId = "test-client"
         val clientInfo = ClientInfo(
-            clientId = "test-client",
+            clientId = clientId,
             role = ClientRole.USER
         )
         
         When("Bearer 토큰 형식으로 API Key가 있고 Redis 캐시에 클라이언트 정보가 있으면") {
             val request = MockServerHttpRequest.get("/api/v1/urls")
+                .header(ClientIdFilter.CLIENT_ID_HEADER, clientId)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
                 .build()
             val exchange = MockServerWebExchange.from(request)
@@ -116,7 +129,7 @@ class ApiKeyAuthenticationFilterTest : BehaviorSpec({
 
             every { redisTemplate.opsForValue() } returns valueOperations
             every { valueOperations.get(any<String>()) } returns Mono.just(clientInfo)
-            every { clientLookupService.lookupClientInfo(any()) } returns Mono.just(clientInfo)
+            every { clientLookupService.lookupClientInfo(any(), clientId) } returns Mono.just(clientInfo)
 
 
             val result = apiKeyAuthenticationFilter.filter(exchange, chain)
@@ -133,6 +146,7 @@ class ApiKeyAuthenticationFilterTest : BehaviorSpec({
         
         When("API Key만 있고 Redis 캐시에 클라이언트 정보가 있으면") {
             val request = MockServerHttpRequest.get("/api/v1/urls")
+                .header(ClientIdFilter.CLIENT_ID_HEADER, clientId)
                 .header(HttpHeaders.AUTHORIZATION, apiKey)
                 .build()
             val exchange = MockServerWebExchange.from(request)
@@ -142,7 +156,7 @@ class ApiKeyAuthenticationFilterTest : BehaviorSpec({
             
             every { redisTemplate.opsForValue() } returns valueOperations
             every { valueOperations.get(any<String>()) } returns Mono.just(clientInfo)
-            every { clientLookupService.lookupClientInfo(any()) } returns Mono.just(clientInfo)
+            every { clientLookupService.lookupClientInfo(any(), clientId) } returns Mono.just(clientInfo)
 
             val result = apiKeyAuthenticationFilter.filter(exchange, chain)
             
@@ -158,6 +172,7 @@ class ApiKeyAuthenticationFilterTest : BehaviorSpec({
         
         When("Redis 캐시에 클라이언트 정보가 없고 Lookup Service에서 조회 성공하면") {
             val request = MockServerHttpRequest.get("/api/v1/urls")
+                .header(ClientIdFilter.CLIENT_ID_HEADER, clientId)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
                 .build()
             val exchange = MockServerWebExchange.from(request)
@@ -168,7 +183,7 @@ class ApiKeyAuthenticationFilterTest : BehaviorSpec({
             every { redisTemplate.opsForValue() } returns valueOperations
             every { valueOperations.get(any<String>()) } returns Mono.empty()
             every { valueOperations.set(any<String>(), any<ClientInfo>(), any<Duration>()) } returns Mono.just(true)
-            every { clientLookupService.lookupClientInfo(any()) } returns Mono.just(clientInfo)
+            every { clientLookupService.lookupClientInfo(any(), clientId) } returns Mono.just(clientInfo)
             
             val result = apiKeyAuthenticationFilter.filter(exchange, chain)
             
@@ -177,7 +192,7 @@ class ApiKeyAuthenticationFilterTest : BehaviorSpec({
                     .verifyComplete()
                 
                 verify(exactly = 1) { chain.filter(exchange) }
-                verify(exactly = 1) { clientLookupService.lookupClientInfo(any()) }
+                verify(exactly = 1) { clientLookupService.lookupClientInfo(any(), clientId) }
                 verify(exactly = 1) { valueOperations.set(any<String>(), any<ClientInfo>(), any<Duration>()) }
                 val savedClientInfo = exchange.attributes[ApiKeyAuthenticationFilter.CLIENT_INFO_ATTRIBUTE] as? ClientInfo
                 savedClientInfo shouldBe clientInfo
@@ -186,6 +201,7 @@ class ApiKeyAuthenticationFilterTest : BehaviorSpec({
         
         When("Lookup Service에서 클라이언트를 찾을 수 없으면") {
             val request = MockServerHttpRequest.get("/api/v1/urls")
+                .header(ClientIdFilter.CLIENT_ID_HEADER, clientId)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
                 .build()
             val exchange = MockServerWebExchange.from(request)
@@ -193,7 +209,7 @@ class ApiKeyAuthenticationFilterTest : BehaviorSpec({
             
             every { redisTemplate.opsForValue() } returns valueOperations
             every { valueOperations.get(any<String>()) } returns Mono.empty()
-            every { clientLookupService.lookupClientInfo(any()) } returns Mono.error(
+            every { clientLookupService.lookupClientInfo(any(), clientId) } returns Mono.error(
                 ClientNotFoundException("클라이언트를 찾을 수 없습니다.")
             )
             
@@ -211,6 +227,7 @@ class ApiKeyAuthenticationFilterTest : BehaviorSpec({
         
         When("예상치 못한 에러가 발생하면") {
             val request = MockServerHttpRequest.get("/api/v1/urls")
+                .header(ClientIdFilter.CLIENT_ID_HEADER, clientId)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
                 .build()
             val exchange = MockServerWebExchange.from(request)
@@ -218,7 +235,7 @@ class ApiKeyAuthenticationFilterTest : BehaviorSpec({
             
             every { redisTemplate.opsForValue() } returns valueOperations
             every { valueOperations.get(any<String>()) } returns Mono.error(RuntimeException("Unexpected error"))
-            every { clientLookupService.lookupClientInfo(any()) } returns Mono.just(clientInfo)
+            every { clientLookupService.lookupClientInfo(any(), clientId) } returns Mono.just(clientInfo)
 
             val result = apiKeyAuthenticationFilter.filter(exchange, chain)
             

@@ -17,9 +17,6 @@ import org.springframework.stereotype.Component
 import org.springframework.web.server.ServerWebExchange
 import reactor.core.publisher.Mono
 import java.time.Duration
-import java.util.Base64
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 
 /**
  * API Key 기반 인증 필터
@@ -52,13 +49,25 @@ class ApiKeyAuthenticationFilter(
         if (path.startsWith("/actuator")) {
             return chain.filter(exchange)
         }
-        
+
+        val clientId = request.headers.getFirst("X-Client-Id")
+        if (clientId.isNullOrBlank()) {
+            logger.warn { "클라이언트 정보가 없습니다. 경로: $path" }
+            return ErrorResponseUtil.createUnauthorizedResponse(
+                exchange,
+                "Authentication required",
+                path
+            )
+        }
         // API Key 헤더 추출
         val apiKey = parseApiKey(request)
         
         // API Key가 없으면 ANONYMOUS 클라이언트로 처리
         if (apiKey.isNullOrBlank()) {
-            val anonymousClient = ClientInfo.createAnonymous()
+            val anonymousClient = ClientInfo(
+                clientId = clientId,
+                role = ClientRole.ANONYMOUS
+            )
             exchange.attributes[CLIENT_INFO_ATTRIBUTE] = anonymousClient
             logger.debug { "익명 클라이언트로 접근: 경로: $path" }
             return chain.filter(exchange)
@@ -66,7 +75,7 @@ class ApiKeyAuthenticationFilter(
 
         
         // 클라이언트 정보 조회
-        return findClientInfo(apiKey)
+        return findClientInfo(apiKey, clientId)
             .flatMap { clientInfo ->
                 // 클라이언트 정보를 exchange에 저장
                 exchange.attributes[CLIENT_INFO_ATTRIBUTE] = clientInfo
@@ -102,7 +111,7 @@ class ApiKeyAuthenticationFilter(
      * 2. 캐시 미스 시 Lookup Service에 요청
      * 3. 조회 성공 시 Redis에 캐싱
      */
-    private fun findClientInfo(apiKey: String): Mono<ClientInfo> {
+    private fun findClientInfo(apiKey: String, clientId: String): Mono<ClientInfo> {
         val hashedKey = hmacSha256(apiKey, hmacProperties)
         val cacheKey = "${CacheNames.CLIENT_INFO}::$hashedKey"
         
@@ -115,7 +124,7 @@ class ApiKeyAuthenticationFilter(
             }
             .switchIfEmpty(
                 // 2. 캐시 미스 시 Lookup Service에 요청
-                clientLookupService.lookupClientInfo(hashedKey)
+                clientLookupService.lookupClientInfo(hashedKey, clientId)
                     .flatMap { clientInfo ->
                         // 3. 조회 성공 시 Redis에 캐싱
                         logger.debug { "Lookup Service에서 조회한 클라이언트 정보를 캐시에 저장: clientId=${clientInfo.clientId}" }
