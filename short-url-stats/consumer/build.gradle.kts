@@ -2,7 +2,6 @@ apply(plugin = "org.springframework.boot")
 apply(plugin = "org.jetbrains.kotlin.plugin.spring")
 
 dependencies {
-    implementation(project(":short-url"))
     implementation(project(":short-url-stats"))
 
 

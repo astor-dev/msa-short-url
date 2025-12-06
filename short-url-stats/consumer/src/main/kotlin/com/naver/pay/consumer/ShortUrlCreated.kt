@@ -1,6 +1,6 @@
 package com.naver.pay.consumer
 
-import com.naver.pay.shorturl.stream.ShortUrlCreatedPayload
+import com.naver.pay.payload.ShortUrlCreatedPayload
 import com.naver.pay.shorturl.stats.ShortUrlMetadata
 import com.naver.pay.shorturl.stats.TotalStatsService
 import io.github.oshai.kotlinlogging.KotlinLogging
