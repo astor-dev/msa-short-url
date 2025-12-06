@@ -9,7 +9,7 @@ dependencies {
     implementation(project(":util:object-mapper"))
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-json")
-    implementation("org.springframework.boot:spring-boot-starter-redis")
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.junit.vintage")
         exclude(group = "org.mockito")
