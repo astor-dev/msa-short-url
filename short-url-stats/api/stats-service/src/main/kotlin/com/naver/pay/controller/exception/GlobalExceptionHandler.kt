@@ -2,11 +2,11 @@ package com.naver.pay.controller.exception
 
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.context.request.WebRequest
-import org.springframework.web.method.annotation.HandlerMethodValidationException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -40,21 +40,21 @@ class GlobalExceptionHandler {
         )
     }
 
-    @ExceptionHandler(HandlerMethodValidationException::class)
+    @ExceptionHandler(MethodArgumentNotValidException::class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    fun handleHandlerMethodValidationException(e: HandlerMethodValidationException, request: WebRequest): ResponseEntity<ErrorResponse> {
-        return ResponseEntity(
-            ErrorResponse(
-                timestamp = System.currentTimeMillis().toString(),
-                status = HttpStatus.BAD_REQUEST,
-                error = e.javaClass.simpleName,
-                message = e.message,
-                path = request.getDescription(false).substringAfter("uri=")
-            ),
-            HttpStatus.BAD_REQUEST
+    fun handleMethodArgumentNotValid(
+        ex: MethodArgumentNotValidException,
+        request: WebRequest
+    ): ResponseEntity<Any> {
+        val errorResponse = ErrorResponse(
+            timestamp = System.currentTimeMillis().toString(),
+            status = HttpStatus.BAD_REQUEST,
+            error = "ValidationFailed",
+            message = "Validation failed for argument(s): " + ex.bindingResult.fieldErrors.joinToString { it.field + ": " + it.defaultMessage },
+            path = request.getDescription(false).substringAfter("uri=")
         )
+        return ResponseEntity(errorResponse, HttpStatus.BAD_REQUEST)
     }
-
 
     @ExceptionHandler(Exception::class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
