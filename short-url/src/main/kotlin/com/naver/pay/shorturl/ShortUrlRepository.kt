@@ -18,7 +18,7 @@ import java.util.concurrent.ThreadLocalRandom
 import kotlin.jvm.optionals.getOrNull
 
 @Repository
-open class ShortUrlRepository(
+class ShortUrlRepository(
     private val redisTemplate: RedisTemplate<String, String>,
     private val outboxService: OutboxService,
     private val shortUrlJpaRepository: ShortUrlJpaRepository,
@@ -149,7 +149,7 @@ open class ShortUrlRepository(
      * @throws DataIntegrityViolationException 최대 재시도 횟수를 초과한 경우
      */
     @Transactional
-    open fun createShortUrl(
+    fun createShortUrl(
         baseUrl: String,
         originalUrl: String,
         ttlSeconds: Int
@@ -231,19 +231,6 @@ open class ShortUrlRepository(
     }
 
     /**
-     * shortKey로 ShortUrl 도메인 객체를 조회합니다.
-     * 
-     * 통계 조회 등에서 ShortUrl 도메인 객체가 필요한 경우 사용합니다.
-     * 주된 조회 경로가 아니므로 캐싱이나 분산 락 없이 단순 DB 조회만 수행합니다.
-     * 
-     * @param shortKey 조회할 ShortUrl의 shortKey
-     * @return 조회된 ShortUrl 도메인 객체, 없으면 null
-     */
-    fun findShortUrlByShortKey(shortKey: String): ShortUrl? {
-        return findByShortKey(shortKey)?.toDomain()
-    }
-
-    /**
      * originalUrl로 ShortUrl을 조회합니다.
      * 
      * Cacheable 어노테이션을 사용하여 자동으로 캐싱 처리합니다.
@@ -254,7 +241,7 @@ open class ShortUrlRepository(
      * @return 조회된 ShortUrl 도메인 객체, 없으면 null
      */
     @Cacheable(cacheNames = [CacheNames.SHORT_URL_BY_ORIGINAL], key = "#originalUrl")
-    open fun findShortUrlByOriginalUrl(originalUrl: String): ShortUrl? {
+    fun findShortUrlByOriginalUrl(originalUrl: String): ShortUrl? {
         return findByOriginalUrl(originalUrl)?.toDomain()
     }
 }
