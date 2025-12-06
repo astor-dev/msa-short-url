@@ -1,18 +1,19 @@
 package com.naver.pay.shorturl.stats
 
-import com.naver.pay.shorturl.ShortUrlRepository
+import com.naver.pay.shorturl.stats.mongodb.ShortUrlTotalStatsRepository
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @Service
 class DailyTopStatsService(
-    private val shortUrlRepository: ShortUrlRepository,
-    private val dailyTopStatsRepository: DailyTopStatsRepository
+    private val dailyTopStatsRepository: DailyTopStatsRepository,
+    private val shortUrlTotalStatsRepository: ShortUrlTotalStatsRepository
 ) {
     /**
      * 단축 Url에 대한 일 단위 Top N 통계를 조회합니다.
      * 영속화된 통계가 없는 경우 캐시로부터 조회합니다.
+     *
      * @param date 조회하려는 일자
      * @param limit top N에서 N의 상한
      * @return ShortUrlDailyTopStats 일 단위 Top N 통계
@@ -28,6 +29,7 @@ class DailyTopStatsService(
 
     /**
      * 클릭 수를 dailyTopStats에 원자적으로 기록합니다.
+     *
      * @param date LocalDate (한국 기준)
      * @param shortKey 방문한 url의 short Key
      * @param referrer 헤더로 부터 추출된 referrer
@@ -44,27 +46,27 @@ class DailyTopStatsService(
 
     /**
      * dailyStatsVo를 도메인 클래스로 resolve 합니다.
-     * shortUrl 모듈 의존성. TODO: 비동기 결합
+     * totalStatsDocument의 메타데이터를 활용합니다.
+     *
+     * @throws NoSuchElementException shortKey에 해당하는 document가 없는 경우
+     * @param dailyStatsVo 캐시로부터 조회된 dailyStats
      */
     fun resolveTotalStats(dailyStatsVo: DailyStatsVo): DailyTopStats {
         val allUniqueKeys = (
                 dailyStatsVo.topUrls.map { it.key } +
                         dailyStatsVo.topByDevice.flatMap { it.topUrls.map { url -> url.key } }
                 ).toSet()
-        // TODO: In 활용 조회로 최적화
-        val shortUrlMap = allUniqueKeys.associateWith { key ->
-            shortUrlRepository.findShortUrlByShortKey(key)
-        }
+        val documents = shortUrlTotalStatsRepository.findAllById(allUniqueKeys)
+        val shortUrlMap = documents.associateBy { it.shortKey }
 
         fun mapToTopUrlInfo(rank: Int, keyCount: KeyCountVo): TopUrlInfo {
             val shortUrl = shortUrlMap[keyCount.key]
-                ?: throw IllegalStateException("ShortUrl info not found for key: ${keyCount.key}")
-            val fullShortUrl = shortUrl.generateShortUrlOrThrow()
+                ?: throw NoSuchElementException("$keyCount key does not exist")
             return TopUrlInfo(
                 rank = rank,
                 shortKey = keyCount.key,
-                shortUrl = fullShortUrl,
-                originalUrl = shortUrl.originalUrl,
+                shortUrl = shortUrl.metadata.shortUrl,
+                originalUrl = shortUrl.metadata.originalUrl,
                 totalClicks = keyCount.count
             )
         }
