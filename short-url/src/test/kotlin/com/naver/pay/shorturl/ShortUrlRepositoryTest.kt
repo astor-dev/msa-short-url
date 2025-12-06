@@ -54,6 +54,7 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
         val now = Instant.now().truncatedTo(ChronoUnit.SECONDS)
         val expiresAt = now.plusSeconds(86400)
         val redirectUrlCacheKey = "${CacheNames.REDIRECT_URL_BY_SHORT_KEY}::$shortKey"
+        val expiresAtCacheKey = "${CacheNames.EXPIRES_AT_BY_SHORT_KEY}::$shortKey"
         val shortUrlEntity = ShortUrlEntity(
             id = 1L,
             shortKey = shortKey,
@@ -65,8 +66,9 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
             deletedAt = null
         )
 
-        When("캐시에 redirectUrl이 존재하는 경우") {
+        When("캐시에 redirectUrl과 expiresAt이 모두 존재하는 경우") {
             every { valueOperations.get(redirectUrlCacheKey) } returns originalUrl
+            every { valueOperations.get(expiresAtCacheKey) } returns expiresAt.toString()
             every {
                 shortUrlEventProducer.publishUrlClicked(
                     shortKey = shortKey,
@@ -77,9 +79,10 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
 
             val result = shortUrlRepository.getRedirectUrl(shortKey, userAgent, referrer)
 
-            Then("캐시된 redirectUrl을 반환하고 이벤트를 발행해야 한다") {
-                result shouldBe originalUrl
+            Then("캐시된 RedirectUrl 도메인 객체를 반환하고 이벤트를 발행해야 한다") {
+                result shouldBe RedirectUrl(url = originalUrl, expiresAt = expiresAt)
                 verify(exactly = 1) { valueOperations.get(redirectUrlCacheKey) }
+                verify(exactly = 1) { valueOperations.get(expiresAtCacheKey) }
                 verify(exactly = 0) {
                     distributedLockExecutor.execute(
                         lockName = any(),
@@ -97,18 +100,19 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
             }
         }
 
-        When("캐시에 redirectUrl이 없고, 락 획득 후 캐시 재확인 시에도 없고, DB에 존재하는 경우") {
+        When("캐시에 redirectUrl과 expiresAt이 없고, 락 획득 후 캐시 재확인 시에도 없고, DB에 존재하는 경우") {
             every { valueOperations.get(redirectUrlCacheKey) } returns null
+            every { valueOperations.get(expiresAtCacheKey) } returns null
             every { shortUrlJpaRepository.findByShortKey(shortKey) } returns Optional.of(shortUrlEntity)
             every { valueOperations.set(any(), any(), any<Duration>()) } returns Unit
             every {
-                distributedLockExecutor.execute<String?>(
+                distributedLockExecutor.execute<RedirectUrl?>(
                     lockName = CacheNames.SHORT_URL_GET_LOCK,
                     key = shortKey,
                     block = any()
                 )
             } answers {
-                val block = lastArg<() -> String?>()
+                val block = lastArg<() -> RedirectUrl?>()
                 block.invoke()
             }
             every {
@@ -121,9 +125,10 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
 
             val result = shortUrlRepository.getRedirectUrl(shortKey, userAgent, referrer)
 
-            Then("DB에서 조회 후 캐시에 저장하고 redirectUrl을 반환하고 이벤트를 발행해야 한다") {
-                result shouldBe originalUrl
+            Then("DB에서 조회 후 캐시에 저장하고 RedirectUrl 도메인 객체를 반환하고 이벤트를 발행해야 한다") {
+                result shouldBe RedirectUrl(url = originalUrl, expiresAt = expiresAt)
                 verify(exactly = 2) { valueOperations.get(redirectUrlCacheKey) }
+                verify(exactly = 2) { valueOperations.get(expiresAtCacheKey) }
                 verify(exactly = 1) {
                     distributedLockExecutor.execute(
                         lockName = CacheNames.SHORT_URL_GET_LOCK,
@@ -133,6 +138,7 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
                 }
                 verify(exactly = 1) { shortUrlJpaRepository.findByShortKey(shortKey) }
                 verify(exactly = 1) { valueOperations.set(redirectUrlCacheKey, originalUrl, any<Duration>()) }
+                verify(exactly = 1) { valueOperations.set(expiresAtCacheKey, expiresAt.toString(), any<Duration>()) }
                 verify(exactly = 1) {
                     shortUrlEventProducer.publishUrlClicked(
                         shortKey = shortKey,
@@ -143,16 +149,17 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
             }
         }
 
-        When("캐시에 redirectUrl이 없고, 락 획득 후 캐시 재확인 시에는 있는 경우") {
+        When("캐시에 redirectUrl과 expiresAt이 없고, 락 획득 후 캐시 재확인 시에는 모두 있는 경우") {
             every { valueOperations.get(redirectUrlCacheKey) } returnsMany listOf(null, originalUrl)
+            every { valueOperations.get(expiresAtCacheKey) } returnsMany listOf(null, expiresAt.toString())
             every {
-                distributedLockExecutor.execute<String?>(
+                distributedLockExecutor.execute<RedirectUrl?>(
                     lockName = CacheNames.SHORT_URL_GET_LOCK,
                     key = shortKey,
                     block = any()
                 )
             } answers {
-                val block = lastArg<() -> String?>()
+                val block = lastArg<() -> RedirectUrl?>()
                 block.invoke()
             }
             every {
@@ -165,9 +172,10 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
 
             val result = shortUrlRepository.getRedirectUrl(shortKey, userAgent, referrer)
 
-            Then("락 획득 후 캐시에서 조회한 redirectUrl을 반환하고 이벤트를 발행해야 한다") {
-                result shouldBe originalUrl
+            Then("락 획득 후 캐시에서 조회한 RedirectUrl 도메인 객체를 반환하고 이벤트를 발행해야 한다") {
+                result shouldBe RedirectUrl(url = originalUrl, expiresAt = expiresAt)
                 verify(exactly = 2) { valueOperations.get(redirectUrlCacheKey) }
+                verify(exactly = 2) { valueOperations.get(expiresAtCacheKey) }
                 verify(exactly = 1) {
                     distributedLockExecutor.execute(
                         lockName = CacheNames.SHORT_URL_GET_LOCK,
@@ -189,15 +197,16 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
 
         When("캐시에도 DB에도 ShortUrl이 존재하지 않는 경우") {
             every { valueOperations.get(redirectUrlCacheKey) } returns null
+            every { valueOperations.get(expiresAtCacheKey) } returns null
             every { shortUrlJpaRepository.findByShortKey(shortKey) } returns Optional.empty()
             every {
-                distributedLockExecutor.execute<String?>(
+                distributedLockExecutor.execute<RedirectUrl?>(
                     lockName = CacheNames.SHORT_URL_GET_LOCK,
                     key = shortKey,
                     block = any()
                 )
             } answers {
-                val block = lastArg<() -> String?>()
+                val block = lastArg<() -> RedirectUrl?>()
                 block.invoke()
             }
 
@@ -206,8 +215,9 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
             Then("null을 반환하고 이벤트를 발행하지 않아야 한다") {
                 result shouldBe null
                 verify(exactly = 2) { valueOperations.get(redirectUrlCacheKey) }
+                verify(exactly = 2) { valueOperations.get(expiresAtCacheKey) }
                 verify(exactly = 1) {
-                    distributedLockExecutor.execute<String?>(
+                    distributedLockExecutor.execute<RedirectUrl?>(
                         lockName = CacheNames.SHORT_URL_GET_LOCK,
                         key = shortKey,
                         block = any()
@@ -222,41 +232,55 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
         }
 
         When("만료된 링크인 경우") {
+            val expiredExpiresAt = now.minusSeconds(3600)
             val expiredEntity = ShortUrlEntity(
                 id = 1L,
                 shortKey = shortKey,
                 baseUrl = baseUrl,
                 originalUrl = originalUrl,
-                expiresAt = now.minusSeconds(3600),
+                expiresAt = expiredExpiresAt,
                 createdAt = now.minusSeconds(7200),
                 updatedAt = now,
                 deletedAt = null
             )
             every { valueOperations.get(redirectUrlCacheKey) } returns null
+            every { valueOperations.get(expiresAtCacheKey) } returns null
             every { shortUrlJpaRepository.findByShortKey(shortKey) } returns Optional.of(expiredEntity)
+            every { valueOperations.set(any(), any(), any<Duration>()) } returns Unit
             every {
-                distributedLockExecutor.execute<String?>(
+                distributedLockExecutor.execute<RedirectUrl?>(
                     lockName = CacheNames.SHORT_URL_GET_LOCK,
                     key = shortKey,
                     block = any()
                 )
             } answers {
-                val block = lastArg<() -> String?>()
+                val block = lastArg<() -> RedirectUrl?>()
                 block.invoke()
             }
+            every {
+                shortUrlEventProducer.publishUrlClicked(
+                    shortKey = shortKey,
+                    referrer = referrer,
+                    userAgent = userAgent
+                )
+            } returns Unit
 
-            Then("ExpiredLinkException을 던지고 이벤트를 발행하지 않아야 한다") {
-                shouldThrow<ExpiredLinkException> {
-                    shortUrlRepository.getRedirectUrl(shortKey, userAgent, referrer)
-                }
-                verify(exactly = 0) {
-                    shortUrlEventProducer.publishUrlClicked(any(), any(), any())
+            Then("만료된 링크도 RedirectUrl 도메인 객체를 반환하고 이벤트를 발행해야 한다 (만료 체크는 서비스 레이어에서 수행)") {
+                val result = shortUrlRepository.getRedirectUrl(shortKey, userAgent, referrer)
+                result shouldBe RedirectUrl(url = originalUrl, expiresAt = expiredExpiresAt)
+                verify(exactly = 1) {
+                    shortUrlEventProducer.publishUrlClicked(
+                        shortKey = shortKey,
+                        referrer = referrer,
+                        userAgent = userAgent
+                    )
                 }
             }
         }
 
         When("userAgent와 referrer가 null인 경우") {
             every { valueOperations.get(redirectUrlCacheKey) } returns originalUrl
+            every { valueOperations.get(expiresAtCacheKey) } returns expiresAt.toString()
             every {
                 shortUrlEventProducer.publishUrlClicked(
                     shortKey = shortKey,
@@ -268,7 +292,7 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
             val result = shortUrlRepository.getRedirectUrl(shortKey, null, null)
 
             Then("기본값으로 이벤트를 발행해야 한다") {
-                result shouldBe originalUrl
+                result shouldBe RedirectUrl(url = originalUrl, expiresAt = expiresAt)
                 verify(exactly = 1) {
                     shortUrlEventProducer.publishUrlClicked(
                         shortKey = shortKey,

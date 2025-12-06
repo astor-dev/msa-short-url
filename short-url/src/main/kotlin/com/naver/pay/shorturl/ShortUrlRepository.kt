@@ -1,7 +1,6 @@
 package com.naver.pay.shorturl
 
 import com.naver.pay.outbox.OutboxService
-import com.naver.pay.shorturl.exception.ExpiredLinkException
 import com.naver.pay.shorturl.jpa.ShortUrlEntity
 import com.naver.pay.shorturl.jpa.ShortUrlJpaRepository
 import com.naver.pay.shorturl.stream.Bindings
@@ -27,46 +26,50 @@ open class ShortUrlRepository(
     private val shortUrlEventProducer: ShortUrlEventProducer
 ) {
     /**
-     * shortKey로 redirectUrl을 조회합니다.
+     * shortKey로 RedirectUrl 도메인 객체를 조회합니다.
      * 
-     * 캐시에서 redirectUrl을 조회하고, 없을 경우 DB에서 조회 후 캐시에 저장합니다.
+     * 캐시에서 redirectUrl과 expiresAt을 조회하고, 없을 경우 DB에서 조회 후 캐시에 저장합니다.
      * Cache Stampede 방지를 위해 Jitter(0~60분)를 추가하여 캐싱합니다.
      * Thundering herd 방지를 위해 조회 로직에 분산락을 사용합니다.
-     * 만료된 링크인 경우 ExpiredLinkException을 발생시키고, 클릭 이벤트를 발행합니다.
      * 
      * @param shortKey 조회할 ShortUrl의 shortKey
      * @param userAgent 사용자 에이전트 (이벤트 발행용)
      * @param referrer 리퍼러 (이벤트 발행용)
-     * @return 조회된 redirectUrl, 없으면 null
-     * @throws ExpiredLinkException 링크가 만료된 경우
+     * @return 조회된 RedirectUrl 도메인 객체, 없으면 null
      */
-    fun getRedirectUrl(shortKey: String, userAgent: String?, referrer: String?): String? {
-        // 1. 캐시에서 redirectUrl 조회
-        val redirectUrl = findRedirectUrlInCache(shortKey)
-            ?: distributedLockExecutor.execute(lockName = CacheNames.SHORT_URL_GET_LOCK, key = shortKey) {
-                // 2-1. 락 획득 후 캐시 재확인
-                var redirectUrl = findRedirectUrlInCache(shortKey)
+    fun getRedirectUrl(shortKey: String, userAgent: String?, referrer: String?): RedirectUrl? {
+        // 1. 캐시에서 redirectUrl과 expiresAt 조회
+        val cachedRedirectUrl = findRedirectUrlInCache(shortKey)
+        val cachedExpiresAt = findExpiresAtInCache(shortKey)
+        // 2. 둘 다 캐시에 있으면 RedirectUrl 도메인 객체 생성하여 반환
+        val redirectUrl = if (cachedRedirectUrl != null && cachedExpiresAt != null) {
+            RedirectUrl(url = cachedRedirectUrl, expiresAt = cachedExpiresAt)
+        } else {
+            distributedLockExecutor.execute(lockName = CacheNames.SHORT_URL_GET_LOCK, key = shortKey) {
+                // 3-1. 락 획득 후 캐시 재확인
+                val redirectUrl = findRedirectUrlInCache(shortKey)
+                val expiresAt = findExpiresAtInCache(shortKey)
 
-                // 2-2. 여전히 캐시 미스 → DB 조회 및 캐시 저장
-                if (redirectUrl == null) {
+                val resolved = if (redirectUrl != null && expiresAt != null) {
+                    RedirectUrl(url = redirectUrl, expiresAt = expiresAt)
+                } else {
                     val shortUrlEntity = findByShortKey(shortKey)
-                    val shortUrl = shortUrlEntity?.toDomain()
-
-                    if (shortUrl != null) {
-                        // 만료 체크
-                        if (shortUrl.expiresAt <= Instant.now()) {
-                            throw ExpiredLinkException(shortUrl.originalUrl)
-                        }
-
-                        redirectUrl = shortUrl.originalUrl
+                    val redirectUrl = shortUrlEntity?.let { entity ->
+                        val redirectUrlValue = entity.originalUrl
+                        val expiresAtValue = entity.expiresAt
                         val ttl = calculateDynamicTtl()
-                        cacheRedirectUrlByShortKey(shortKey, redirectUrl, ttl)
+                        cacheRedirectUrlAndExpiresAt(shortKey,redirectUrlValue, expiresAtValue, ttl)
+                        RedirectUrl(
+                            url = redirectUrlValue,
+                            expiresAt = expiresAtValue
+                        )
                     }
+                    redirectUrl
                 }
-                redirectUrl
+                resolved
             }
-        // 3. 클릭 이벤트 발행
-        if (redirectUrl != null) {
+        }
+        if(redirectUrl != null) {
             shortUrlEventProducer.publishUrlClicked(
                 shortKey = shortKey,
                 userAgent = userAgent ?: "Unknown",
@@ -74,7 +77,6 @@ open class ShortUrlRepository(
             )
         }
         return redirectUrl
-
     }
 
     /**
@@ -89,15 +91,30 @@ open class ShortUrlRepository(
     }
 
     /**
-     * redirectUrl을 캐시에 저장합니다.
+     * 캐시에서 expiresAt을 조회합니다.
+     * 
+     * @param shortKey 조회할 ShortUrl의 shortKey
+     * @return 캐시된 expiresAt, 없으면 null
+     */
+    private fun findExpiresAtInCache(shortKey: String): Instant? {
+        val cacheKey = "${CacheNames.EXPIRES_AT_BY_SHORT_KEY}::$shortKey"
+        val expiresAtString = redisTemplate.opsForValue().get(cacheKey)
+        return expiresAtString?.let { Instant.parse(it) }
+    }
+
+    /**
+     * redirectUrl과 expiresAt을 캐시에 저장합니다.
      * 
      * @param shortKey ShortUrl의 shortKey
      * @param redirectUrl 저장할 redirectUrl
+     * @param expiresAt 저장할 expiresAt
      * @param ttl 캐시 TTL
      */
-    private fun cacheRedirectUrlByShortKey(shortKey: String, redirectUrl: String, ttl: Duration) {
-        val cacheKey = "${CacheNames.REDIRECT_URL_BY_SHORT_KEY}::$shortKey"
-        redisTemplate.opsForValue().set(cacheKey, redirectUrl, ttl)
+    private fun cacheRedirectUrlAndExpiresAt(shortKey: String, redirectUrl: String, expiresAt: Instant, ttl: Duration) {
+        val redirectUrlCacheKey = "${CacheNames.REDIRECT_URL_BY_SHORT_KEY}::$shortKey"
+        val expiresAtCacheKey = "${CacheNames.EXPIRES_AT_BY_SHORT_KEY}::$shortKey"
+        redisTemplate.opsForValue().set(redirectUrlCacheKey, redirectUrl, ttl)
+        redisTemplate.opsForValue().set(expiresAtCacheKey, expiresAt.toString(), ttl)
     }
 
     /**
