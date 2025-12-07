@@ -17,7 +17,7 @@ spring:
       server:
         webflux:
           default-filters:
-            - name: RequestRateLimiter
+            - name: OrderedRateLimiter
               args:
                 key-resolver: "#{@clientIdKeyResolver}"
                 redis-rate-limiter.replenishRate: 10
@@ -37,7 +37,7 @@ spring:
               predicates:
                 - Path=/{shortKey}
               filters:
-                - name: RequestRateLimiter
+                - name: OrderedRateLimiter
                   args:
                       key-resolver: "#{@clientIdKeyResolver}"
                       redis-rate-limiter.replenishRate: 20
