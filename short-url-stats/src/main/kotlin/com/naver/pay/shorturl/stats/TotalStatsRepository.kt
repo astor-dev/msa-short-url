@@ -11,6 +11,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Arrays
 
 @Repository
 class TotalStatsRepository(
@@ -65,26 +66,31 @@ class TotalStatsRepository(
         clickedAt: Instant
     ) {
         val dateString = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-        val totalClicksKey = "${CacheNames.TOTAL_STATS_TOTAL_CLICKS}::$shortKey"
-        val byDateKey = "${CacheNames.TOTAL_STATS_BY_DATE}::$shortKey"
-        val byDeviceKey = "${CacheNames.TOTAL_STATS_BY_DEVICE}::$shortKey"
-        val byReferrerKey = "${CacheNames.TOTAL_STATS_BY_REFERRER}::$shortKey"
-        val lastClickedAtKey = "${CacheNames.TOTAL_STATS_LAST_CLICKED_AT}::$shortKey"
+        val cacheKeys = TotalStatsCacheKeys.from(shortKey)
 
-        val keys = listOf(totalClicksKey, byDateKey, byDeviceKey, byReferrerKey, lastClickedAtKey)
+        val keys = listOf(
+            cacheKeys.totalClicksKey,
+            cacheKeys.byDateKey,
+            cacheKeys.byDeviceKey,
+            cacheKeys.byReferrerKey,
+            cacheKeys.lastClickedAtKey,
+        )
         val args = arrayOf(
             dateString,
             device,
             referrer,
             clickedAt.toString(),
-            ttlSeconds.toString()
+            ttlSeconds.toString(),
         )
+        print(keys)
+        print(args.contentToString())
 
         redisTemplate.execute(
             recordClickScript,
             keys,
             *args
         )
+        redisTemplate.opsForSet().add(cacheKeys.dirtySetKey, shortKey)
     }
 
     /**
@@ -110,93 +116,130 @@ class TotalStatsRepository(
      * @param totalStats 초기화할 TotalStats
      */
     private fun initializeCache(shortKey: String, totalStats: TotalStats) {
-        val totalClicksKey = "${CacheNames.TOTAL_STATS_TOTAL_CLICKS}::$shortKey"
-        val byDateKey = "${CacheNames.TOTAL_STATS_BY_DATE}::$shortKey"
-        val byDeviceKey = "${CacheNames.TOTAL_STATS_BY_DEVICE}::$shortKey"
-        val byReferrerKey = "${CacheNames.TOTAL_STATS_BY_REFERRER}::$shortKey"
-        val lastClickedAtKey = "${CacheNames.TOTAL_STATS_LAST_CLICKED_AT}::$shortKey"
-
-        redisTemplate.opsForValue().set(totalClicksKey, totalStats.totalClicks.toString())
-        redisTemplate.expire(totalClicksKey, Duration.ofSeconds(ttlSeconds))
-
+        // 1. 저장할 데이터 미리 가공 (Pipeline 내부 로직을 깔끔하게 하기 위해)
         val byDateMap = totalStats.byDate.associate { it.date to it.clicks.toString() }
-        if (byDateMap.isNotEmpty()) {
-            redisTemplate.opsForHash<String, String>().putAll(byDateKey, byDateMap)
-            redisTemplate.expire(byDateKey, Duration.ofSeconds(ttlSeconds))
-        }
-
         val byDeviceMap = totalStats.byDevice.associate { it.deviceType to it.clicks.toString() }
-        if (byDeviceMap.isNotEmpty()) {
-            redisTemplate.opsForHash<String, String>().putAll(byDeviceKey, byDeviceMap)
-            redisTemplate.expire(byDeviceKey, Duration.ofSeconds(ttlSeconds))
-        }
-
         val byReferrerMap = totalStats.byReferrer.associate { it.referrer to it.clicks.toString() }
-        if (byReferrerMap.isNotEmpty()) {
-            redisTemplate.opsForHash<String, String>().putAll(byReferrerKey, byReferrerMap)
-            redisTemplate.expire(byReferrerKey, Duration.ofSeconds(ttlSeconds))
-        }
+        val lastClickedAtStr = totalStats.lastClickedAt?.toString()
+        val ttl = Duration.ofSeconds(ttlSeconds)
 
-        totalStats.lastClickedAt?.let {
-            redisTemplate.opsForValue().set(lastClickedAtKey, it.toString())
-            redisTemplate.expire(lastClickedAtKey, Duration.ofSeconds(ttlSeconds))
+        // 2. 파이프라인 실행 (반환값 불필요)
+        redisTemplate.executePipelined { _ ->
+            val cacheKeys = TotalStatsCacheKeys.from(shortKey)
+
+            // Operations
+            val valueOps = redisTemplate.opsForValue()
+            val hashOps = redisTemplate.opsForHash<String, String>()
+            val setOps = redisTemplate.opsForSet()
+
+            // Total Clicks
+            valueOps.set(cacheKeys.totalClicksKey, totalStats.totalClicks.toString())
+            redisTemplate.expire(cacheKeys.totalClicksKey, ttl)
+
+            // By Date
+            if (byDateMap.isNotEmpty()) {
+                hashOps.putAll(cacheKeys.byDateKey, byDateMap)
+                redisTemplate.expire(cacheKeys.byDateKey, ttl)
+            }
+
+            // By Device
+            if (byDeviceMap.isNotEmpty()) {
+                hashOps.putAll(cacheKeys.byDeviceKey, byDeviceMap)
+                redisTemplate.expire(cacheKeys.byDeviceKey, ttl)
+            }
+
+            // By Referrer
+            if (byReferrerMap.isNotEmpty()) {
+                hashOps.putAll(cacheKeys.byReferrerKey, byReferrerMap)
+                redisTemplate.expire(cacheKeys.byReferrerKey, ttl)
+            }
+
+            // Last Clicked At
+            if (lastClickedAtStr != null) {
+                valueOps.set(cacheKeys.lastClickedAtKey, lastClickedAtStr)
+                redisTemplate.expire(cacheKeys.lastClickedAtKey, ttl)
+            }
+
+            // Dirty Set
+            setOps.add(cacheKeys.dirtySetKey, shortKey)
+
+            null // 반환값 없음
         }
     }
 
-    /**
-     * 캐시에서 TotalStatsVo를 조회합니다.
-     *
-     * @param shortKey 조회하려는 short Key
-     * @return TotalStatsVo, 조회된 데이터가 없으면 null
-     */
     fun findTotalStatsInCache(shortKey: String): TotalStatsVo? {
-        val totalClicksKey = "${CacheNames.TOTAL_STATS_TOTAL_CLICKS}::$shortKey"
-        if (!redisTemplate.hasKey(totalClicksKey)) {
+        val cacheKeys = TotalStatsCacheKeys.from(shortKey)
+        val results = redisTemplate.executePipelined { _ ->
+            val valueOps = redisTemplate.opsForValue()
+            val hashOps = redisTemplate.opsForHash<String, String>()
+
+            valueOps.get(cacheKeys.totalClicksKey)
+            hashOps.entries(cacheKeys.byDateKey)
+            hashOps.entries(cacheKeys.byDeviceKey)
+            hashOps.entries(cacheKeys.byReferrerKey)
+            valueOps.get(cacheKeys.lastClickedAtKey)
+            null
+        }
+        if (!(results.isNotEmpty() && results.size >= 5)) {
             return null
         }
-
-        val totalClicks = redisTemplate.opsForValue().get(totalClicksKey)?.toLongOrNull() ?: 0L
-
-        val byDateKey = "${CacheNames.TOTAL_STATS_BY_DATE}::$shortKey"
-        val byDateMap = redisTemplate.opsForHash<String, String>().entries(byDateKey)
-        val byDate = byDateMap.map { (date, clicks) ->
-            DateCountVo(
-                date = date,
-                clicks = clicks.toLongOrNull() ?: 0L
-            )
-        }
-
-        val byDeviceKey = "${CacheNames.TOTAL_STATS_BY_DEVICE}::$shortKey"
-        val byDeviceMap = redisTemplate.opsForHash<String, String>().entries(byDeviceKey)
-        val byDevice = byDeviceMap.map { (deviceType, clicks) ->
-            DeviceCountVo(
-                deviceType = deviceType,
-                clicks = clicks.toLongOrNull() ?: 0L
-            )
-        }
-
-        val byReferrerKey = "${CacheNames.TOTAL_STATS_BY_REFERRER}::$shortKey"
-        val byReferrerMap = redisTemplate.opsForHash<String, String>().entries(byReferrerKey)
-        val byReferrer = byReferrerMap.map { (referrer, clicks) ->
-            ReferrerCountVo(
-                referrer = referrer,
-                clicks = clicks.toLongOrNull() ?: 0L
-            )
-        }
-
-        val lastClickedAtKey = "${CacheNames.TOTAL_STATS_LAST_CLICKED_AT}::$shortKey"
-        val lastClickedAtString = redisTemplate.opsForValue().get(lastClickedAtKey)
-        val lastClickedAt = lastClickedAtString?.let { Instant.parse(it) }
-
+        val (clicksRaw, dateRaw, deviceRaw, referrerRaw, lastClickedRaw) = results
+        val totalClicks = (clicksRaw as? String)?.toLongOrNull() ?: return null
         return TotalStatsVo(
             shortKey = shortKey,
             totalClicks = totalClicks,
-            byDate = byDate,
-            byDevice = byDevice,
-            byReferrer = byReferrer,
-            lastClickedAt = lastClickedAt
+            byDate = dateRaw.asSafeMap().toDateCountVoList(),
+            byDevice = deviceRaw.asSafeMap().toDeviceCountVoList(),
+            byReferrer = referrerRaw.asSafeMap().toReferrerCountVoList(),
+            lastClickedAt = (lastClickedRaw as? String)?.let { runCatching { Instant.parse(it) }.getOrNull() }
         )
     }
+    /**
+     * 캐시에서 여러 TotalStatsVo를 한 번에 조회합니다.
+     *
+     * Redis Pipeline을 사용하여 효율적으로 조회합니다.
+     *
+     * @param shortKeyList 조회하려는 short Key 리스트
+     * @return TotalStatsVo 리스트, 캐시에 없는 경우 해당 항목은 제외됩니다
+     */
+    fun findTotalStatsInCacheList(shortKeyList: List<String>): List<TotalStatsVo> {
+        if (shortKeyList.isEmpty()) {
+            return emptyList()
+        }
+        // 1. Redis Pipeline 실행 (결과는 플랫한 리스트로 반환됨)
+        val pipelineResults = redisTemplate.executePipelined { _ ->
+            val valueOps = redisTemplate.opsForValue()
+            val hashOps = redisTemplate.opsForHash<String, String>()
+
+            shortKeyList.forEach { shortKey ->
+                val cacheKeys = TotalStatsCacheKeys.from(shortKey)
+                valueOps.get(cacheKeys.totalClicksKey)
+                hashOps.entries(cacheKeys.byDateKey)
+                hashOps.entries(cacheKeys.byDeviceKey)
+                hashOps.entries(cacheKeys.byReferrerKey)
+                valueOps.get(cacheKeys.lastClickedAtKey)
+            }
+            null
+        }
+
+
+        return shortKeyList.zip(pipelineResults.chunked(5))
+            .mapNotNull { (shortKey, results) ->
+                if (results.size != 5) return@mapNotNull null
+                val (clicksRaw, dateRaw, deviceRaw, referrerRaw, lastClickedRaw) = results
+                val totalClicks = (clicksRaw as? String)?.toLongOrNull() ?: return@mapNotNull null
+
+                TotalStatsVo(
+                    shortKey = shortKey,
+                    totalClicks = totalClicks,
+                    byDate = dateRaw.asSafeMap().toDateCountVoList(),
+                    byDevice = deviceRaw.asSafeMap().toDeviceCountVoList(),
+                    byReferrer = referrerRaw.asSafeMap().toReferrerCountVoList(),
+                    lastClickedAt = (lastClickedRaw as? String)?.let { runCatching { Instant.parse(it) }.getOrNull() }
+                )
+            }
+    }
+
 
     /**
      * TotalStats를 MongoDB에 저장합니다.
@@ -216,4 +259,37 @@ class TotalStatsRepository(
 
         shortUrlTotalStatsRepository.save(document)
     }
+
+    /**
+     * TotalStats 리스트를 MongoDB에 bulk operations로 저장합니다.
+     *
+     * @param totalStatsList 저장할 TotalStats 리스트
+     */
+    fun saveAll(totalStatsList: List<TotalStats>) {
+        shortUrlTotalStatsRepository.saveAll(totalStatsList)
+    }
+
+    /**
+     * dirtySet에서 지정된 개수만큼 shortKey를 꺼냅니다.
+     *
+     * SPOP 명령어를 사용하여 원자적으로 여러 개를 한 번에 꺼냅니다.
+     *
+     * @param count 꺼낼 개수
+     * @return shortKey 리스트
+     */
+    fun popDirtyShortKeys(count: Long): List<String> {
+        if (count <= 0) return emptyList()
+        return redisTemplate.opsForSet().pop(CacheNames.TOTAL_STATS_DIRTY_SET, count)
+            ?: emptyList()
+    }
+
+    /**
+     * Any? 타입을 Map<String, String>으로 안전하게 변환하는 확장 함수
+     */
+    private fun Any?.asSafeMap(): Map<String, String> {
+        return (this as? Map<*, *>)?.entries
+            ?.associate { it.key.toString() to it.value.toString() }
+            ?: emptyMap()
+    }
+
 }

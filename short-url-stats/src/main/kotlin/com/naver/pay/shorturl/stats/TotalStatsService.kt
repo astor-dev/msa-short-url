@@ -76,37 +76,56 @@ class TotalStatsService(
      */
     fun resolveTotalStats(totalStatsVo: TotalStatsVo): TotalStats? {
         val document = shortUrlTotalStatsRepository.findByIdOrNull(totalStatsVo.shortKey) ?: return null
+        return totalStatsVo.toDomain(document)
+    }
 
-        val byDate = totalStatsVo.byDate.map {
-            ShortUrlStatsByDate(
-                date = it.date,
-                clicks = it.clicks
-            )
+    /**
+     * TotalStatsVo 리스트를 도메인 객체 리스트로 resolve합니다.
+     *
+     * metadata는 MongoDB에서 한 번에 조회하여 빠르게 매핑합니다.
+     *
+     * @param totalStatsVoList 캐시로부터 조회된 TotalStatsVo 리스트
+     * @return TotalStats 리스트, document가 없는 경우 해당 항목은 제외됩니다
+     */
+    fun resolveTotalStatsList(totalStatsVoList: List<TotalStatsVo>): List<TotalStats> {
+        if (totalStatsVoList.isEmpty()) {
+            return emptyList()
         }
 
-        val byDevice = totalStatsVo.byDevice.map {
-            ShortUrlStatsByDevice(
-                deviceType = it.deviceType,
-                clicks = it.clicks
-            )
+        val shortKeyList = totalStatsVoList.map { it.shortKey }
+        val documents = shortUrlTotalStatsRepository.findAllById(shortKeyList)
+        val documentMap = documents.associateBy { it.shortKey }
+
+        return totalStatsVoList.mapNotNull { totalStatsVo ->
+            val document = documentMap[totalStatsVo.shortKey] ?: return@mapNotNull null
+            totalStatsVo.toDomain(document)
+        }
+    }
+
+    /**
+     * 여러 TotalStats를 한 번에 조회합니다.
+     *
+     * 캐시를 우선 조회하고, 캐시 미스인 항목은 MongoDB에서 조회 후 캐시에 초기값을 설정합니다.
+     *
+     * @param shortKeyList 조회하려는 short Key 리스트
+     * @return TotalStats 리스트, 조회된 데이터가 없는 경우 해당 항목은 제외됩니다
+     */
+    fun findAll(shortKeyList: List<String>): List<TotalStats> {
+        if (shortKeyList.isEmpty()) {
+            return emptyList()
         }
 
-        val byReferrer = totalStatsVo.byReferrer.map {
-            ShortUrlStatsByReferrer(
-                referrer = it.referrer,
-                clicks = it.clicks
-            )
+        val totalStatsVoList = totalStatsRepository.findTotalStatsInCacheList(shortKeyList)
+        val cachedShortKeys = totalStatsVoList.map { it.shortKey }.toSet()
+        val missingShortKeys = shortKeyList.filter { it !in cachedShortKeys }
+
+        val missingTotalStatsList = missingShortKeys.mapNotNull { shortKey ->
+            totalStatsRepository.findOneFromDbAndInitializeCache(shortKey)
         }
 
-        return TotalStats(
-            shortKey = totalStatsVo.shortKey,
-            totalClicks = totalStatsVo.totalClicks,
-            byDate = byDate,
-            byDevice = byDevice,
-            byReferrer = byReferrer,
-            lastClickedAt = totalStatsVo.lastClickedAt,
-            metadata = document.metadata
-        )
+        val resolvedTotalStatsList = resolveTotalStatsList(totalStatsVoList)
+
+        return resolvedTotalStatsList + missingTotalStatsList
     }
 
     /**
@@ -116,5 +135,14 @@ class TotalStatsService(
      */
     fun save(totalStats: TotalStats) {
         totalStatsRepository.save(totalStats)
+    }
+
+    /**
+     * TotalStats 리스트를 영속화합니다.
+     *
+     * @param totalStatsList 저장할 TotalStats 리스트
+     */
+    fun saveAll(totalStatsList: List<TotalStats>) {
+        totalStatsRepository.saveAll(totalStatsList)
     }
 }

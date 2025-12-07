@@ -13,4 +13,5 @@ object CacheNames {
     const val TOTAL_STATS_BY_DEVICE = "$PREFIX::total_stats_by_device"
     const val TOTAL_STATS_BY_REFERRER = "$PREFIX::total_stats_by_referrer"
     const val TOTAL_STATS_LAST_CLICKED_AT = "$PREFIX::total_stats_last_clicked_at"
+    const val TOTAL_STATS_DIRTY_SET = "$PREFIX::total_stats_dirty_set"
 }
