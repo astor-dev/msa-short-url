@@ -118,12 +118,12 @@ class ShortUrlRepository(
     }
 
     /**
-     * 기본 TTL(1일) + Jitter(0~60분)을 적용한 Duration을 계산합니다.
+     * 기본 TTL(2주) + Jitter(0~60분)을 적용한 Duration을 계산합니다.
      * 
      * @return 계산된 TTL Duration
      */
     private fun calculateDynamicTtl(): Duration {
-        val ttlSeconds = 86400L // 기본 1일 (24시간)
+        val ttlSeconds = 60 * 60 * 24 * 14  // 기본 2주
         val jitterRangeSeconds = 3600L // Jitter 범위 1시간
         val jitter = ThreadLocalRandom.current().nextLong(jitterRangeSeconds)
         val standardTtlSeconds = ttlSeconds + jitter

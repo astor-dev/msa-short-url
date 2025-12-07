@@ -85,7 +85,7 @@ Location: https://naver.com/long/url
 ```
 
 **특징**
-- 1일 + jitter(0~60분) 동안 캐싱
+- 14일 + jitter(0~60분) 동안 캐싱
 - 클릭 **비동기 이벤트** 발행
 
 ---
