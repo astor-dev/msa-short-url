@@ -1,20 +1,48 @@
-## API 명세
+# API 명세
 
-### Short URL 생성 API
+## 인증
 
-* Request
+| 접속 유형 | 권한 | 사용 가능한 API | 인증 방법 |
+|---------|------|---------------|---------|
+| 일반 접속 | 없음 | Short URL 조회(리다이렉트) | 인증 불필요 |
+| 유저 접속 | User | Short URL 생성, Short URL 상태 조회 | `Authorization: Bearer test-user-key` |
+| 어드민 접속 | Admin | 통계 조회 (상세 통계, Top N 집계) | `Authorization: Bearer test-admin-key` |
 
-```http
-POST /api/v1/urls
-Content-Type: application/json
+---
 
+## API 목록
+
+| 번호 | API 명 | 메서드 | 엔드포인트 | 인증 | 설명 |
+|-----|------|--------|----------|------|------|
+| 1 | Short URL 생성 | `POST` | `/api/v1/urls` | User | Short URL 생성 |
+| 2 | Short URL 조회(리다이렉트) | `GET` | `/{shortKey}` | 없음 | Short URL 리다이렉트 |
+| 3 | Short URL 상태 조회 | `GET` | `/api/v1/urls/{shortKey}` | User | Short URL 기본 정보 및 클릭 요약 조회 |
+| 4 | Short URL 상세 통계 조회 | `GET` | `/api/v1/urls/{shortKey}/statistics` | Admin | Short URL 상세 통계 정보 조회 |
+| 5 | Short URL 집계 Top N (일간) | `GET` | `/api/v1/statistics/top` | Admin | 플랫폼 전체 일간 Top N 통계 조회 |
+
+---
+
+## API 상세 명세
+
+### 1. Short URL 생성 API
+
+| 항목 | 내용 |
+|-----|------|
+| **메서드** | `POST` |
+| **엔드포인트** | `/api/v1/urls` |
+| **인증** | `Authorization: Bearer test-user-key` |
+| **Content-Type** | `application/json` |
+
+**Request Body**
+
+```json
 {
   "originalUrl": "https://naver.com/long/url",
   "ttlSeconds": 2592000
 }
 ```
 
-* Response (201 Created)
+**Response (201 Created)**
 
 ```json
 {
@@ -25,12 +53,23 @@ Content-Type: application/json
   "expiredAt": "2025-02-14T10:30:00Z"
 }
 ```
+
+**특징**
 - 즉시 응답
 - 동일 key에 대한 멱등성 보장
 
-### Short URL 조회(리다이렉트)
+---
 
-**Request**
+### 2. Short URL 조회(리다이렉트)
+
+| 항목 | 내용 |
+|-----|------|
+| **메서드** | `GET` |
+| **엔드포인트** | `/{shortKey}` |
+| **인증** | 불필요 |
+| **헤더** | `User-Agent`, `Referer` (선택) |
+
+**Request Example**
 
 ```http
 GET /abc123
@@ -38,21 +77,32 @@ User-Agent: Mozilla/5.0
 Referer: https://pay.naver.com/events/card-benefit
 ```
 
-**Response**
+**Response (302 Found)**
 
 ```http
 302 Found
 Location: https://naver.com/long/url
 ```
+
+**특징**
 - 1일 + jitter(0~60분) 동안 캐싱
 - 클릭 **비동기 이벤트** 발행
 
-### 5.3 Short URL 상태 조회 API
+---
 
-**Request**
+### 3. Short URL 상태 조회 API
+
+| 항목 | 내용 |
+|-----|------|
+| **메서드** | `GET` |
+| **엔드포인트** | `/api/v1/urls/{shortKey}` |
+| **인증** | `Authorization: Bearer test-user-key` |
+
+**Request Example**
 
 ```http
 GET /api/v1/urls/abc123
+Authorization: Bearer test-user-key
 ```
 
 **Response**
@@ -71,18 +121,26 @@ GET /api/v1/urls/abc123
 }
 ```
 
-- 단축 URL에 대한 기본 메타 정보를 조회
-- 항목 
-  - 원본 URL, 단축 키/단축 URL 
-  - 생성 시각, 만료 시각 
-  - 전체 클릭수 및 마지막 클릭 시각(요약 정보 수준)
+**응답 항목**
+- 원본 URL, 단축 키/단축 URL
+- 생성 시각, 만료 시각
+- 전체 클릭수 및 마지막 클릭 시각(요약 정보 수준)
 
-### 5.4 Short URL 상세 통계 조회 API
+---
 
-**Request**
+### 4. Short URL 상세 통계 조회 API
+
+| 항목 | 내용 |
+|-----|------|
+| **메서드** | `GET` |
+| **엔드포인트** | `/api/v1/urls/{shortKey}/statistics` |
+| **인증** | `Authorization: Bearer test-admin-key` |
+
+**Request Example**
 
 ```http
 GET /api/v1/urls/abc123/statistics
+Authorization: Bearer test-admin-key
 ```
 
 **Response**
@@ -106,19 +164,28 @@ GET /api/v1/urls/abc123/statistics
 }
 ```
 
-- 단축 URL에 대한 **상세 통계 정보**를 조회
-- 항목:
-  - 전체 클릭수(`totalClicks`)
-  - 일자별 클릭수(`byDate`)
-  - 디바이스 타입별 클릭수(`byDevice`) 
-  - referrer URL 별 클릭수(`byReferrer`)
+**응답 항목**
+- 전체 클릭수(`totalClicks`)
+- 일자별 클릭수(`byDate`)
+- 디바이스 타입별 클릭수(`byDevice`)
+- referrer URL 별 클릭수(`byReferrer`)
 
-### 5.5 Short URL 집계 Top N API (일간)
+---
 
-**Request**
+### 5. Short URL 집계 Top N API (일간)
+
+| 항목 | 내용 |
+|-----|------|
+| **메서드** | `GET` |
+| **엔드포인트** | `/api/v1/statistics/top` |
+| **인증** | `Authorization: Bearer test-admin-key` |
+| **Query Parameters** | `date` (필수), `limit` (선택, 기본값: 10, 최대: 100) |
+
+**Request Example**
 
 ```http
 GET /api/v1/statistics/top?date=2025-01-20&limit=10
+Authorization: Bearer test-admin-key
 ```
 
 **Response**
@@ -141,7 +208,6 @@ GET /api/v1/statistics/top?date=2025-01-20&limit=10
       "originalUrl": "https://example.com/event",  
       "totalClicks": 12000  
     }  
-    
   ],  
   "topReferrers": [  
     {  
@@ -183,22 +249,23 @@ GET /api/v1/statistics/top?date=2025-01-20&limit=10
       ]  
     }  
   ]  
-}  
+}
 ```
-* **플랫폼 전체 기준, “일단위” 집계 Top N 통계**를 조회
-* 집계 데이터
 
-1. **가장 많이 클릭된 Short URL Top N**
-    * 응답 필드: `topUrls[]`
-    * 항목: `shortKey`, `shortUrl`, `originalUrl`, `totalClicks`, `rank`
-2. **referrer 기준으로 가장 클릭이 많은 Top N**
-    * 응답 필드: `topReferrers[]`
-    * 항목: `referrer`, `totalClicks`, `rank`
-3. **디바이스별로 가장 많이 클릭된 Short URL Top N**
-    * 응답 필드: `topByDevice[]`
-    * 항목:: `deviceType`(mobile/desktop/tablet 등), `totalClicks`, `topUrls[]`:
-        * topUrls : `shortKey`, `shortUrl`, `originalUrl`, `clicksFromThisDevice`, `rank`
+**설명**
+- **플랫폼 전체 기준, "일단위" 집계 Top N 통계**를 조회
 
-* `limit` 파라미터:
-    * 각 Top 리스트에서 가져올 개수 (기본 10)
-    * 상한 개수 100
+**집계 데이터**
+
+| 집계 유형 | 응답 필드 | 항목 |
+|---------|---------|------|
+| 가장 많이 클릭된 Short URL Top N | `topUrls[]` | `shortKey`, `shortUrl`, `originalUrl`, `totalClicks`, `rank` |
+| referrer 기준 클릭 Top N | `topReferrers[]` | `referrer`, `totalClicks`, `rank` |
+| 디바이스별 클릭 Top N | `topByDevice[]` | `deviceType`(mobile/desktop/tablet 등), `totalClicks`, `topUrls[]`<br/>- topUrls: `shortKey`, `shortUrl`, `originalUrl`, `clicksFromThisDevice`, `rank` |
+
+**Query Parameters**
+
+| 파라미터 | 타입 | 필수 | 기본값 | 최대값 | 설명 |
+|---------|------|------|--------|--------|------|
+| `date` | String | ✅ | - | - | 조회할 날짜 (예: 2025-01-20) |
+| `limit` | Integer | ❌ | 10 | 100 | 각 Top 리스트에서 가져올 개수 |
