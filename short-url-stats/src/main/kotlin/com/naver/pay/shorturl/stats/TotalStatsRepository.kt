@@ -2,16 +2,17 @@ package com.naver.pay.shorturl.stats
 
 import com.naver.pay.shorturl.stats.mongodb.ShortUrlTotalStatsDocument
 import com.naver.pay.shorturl.stats.mongodb.ShortUrlTotalStatsRepository
+import org.springframework.data.redis.connection.RedisStringCommands
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.script.DefaultRedisScript
 import org.springframework.data.redis.core.script.RedisScript
+import org.springframework.data.redis.core.types.Expiration
 import org.springframework.stereotype.Repository
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Arrays
 
 @Repository
 class TotalStatsRepository(
@@ -82,8 +83,6 @@ class TotalStatsRepository(
             clickedAt.toString(),
             ttlSeconds.toString(),
         )
-        print(keys)
-        print(args.contentToString())
 
         redisTemplate.execute(
             recordClickScript,
@@ -124,60 +123,50 @@ class TotalStatsRepository(
         val ttl = Duration.ofSeconds(ttlSeconds)
 
         // 2. 파이프라인 실행 (반환값 불필요)
-        redisTemplate.executePipelined { _ ->
+        redisTemplate.executePipelined { connection ->
             val cacheKeys = TotalStatsCacheKeys.from(shortKey)
+            val ttlSeconds = ttl.seconds
+            connection.stringCommands().set(
+                cacheKeys.totalClicksKey.toByteArray(),
+                totalStats.totalClicks.toString().toByteArray(),
+                Expiration.seconds(ttlSeconds),
+                RedisStringCommands.SetOption.upsert()
+            )
 
-            // Operations
-            val valueOps = redisTemplate.opsForValue()
-            val hashOps = redisTemplate.opsForHash<String, String>()
-            val setOps = redisTemplate.opsForSet()
-
-            // Total Clicks
-            valueOps.set(cacheKeys.totalClicksKey, totalStats.totalClicks.toString())
-            redisTemplate.expire(cacheKeys.totalClicksKey, ttl)
-
-            // By Date
             if (byDateMap.isNotEmpty()) {
-                hashOps.putAll(cacheKeys.byDateKey, byDateMap)
-                redisTemplate.expire(cacheKeys.byDateKey, ttl)
+                connection.hashCommands().hMSet(cacheKeys.byDateKey.toByteArray(), byDateMap.mapKeys { it.key.toByteArray() }.mapValues { it.value.toByteArray() })
+                connection.keyCommands().expire(cacheKeys.byDateKey.toByteArray(), ttlSeconds)
             }
 
-            // By Device
             if (byDeviceMap.isNotEmpty()) {
-                hashOps.putAll(cacheKeys.byDeviceKey, byDeviceMap)
-                redisTemplate.expire(cacheKeys.byDeviceKey, ttl)
+                connection.hashCommands().hMSet(cacheKeys.byDeviceKey.toByteArray(), byDeviceMap.mapKeys { it.key.toByteArray() }.mapValues { it.value.toByteArray() })
+                connection.keyCommands().expire(cacheKeys.byDeviceKey.toByteArray(), ttlSeconds)
             }
 
-            // By Referrer
             if (byReferrerMap.isNotEmpty()) {
-                hashOps.putAll(cacheKeys.byReferrerKey, byReferrerMap)
-                redisTemplate.expire(cacheKeys.byReferrerKey, ttl)
+                connection.hashCommands().hMSet(cacheKeys.byReferrerKey.toByteArray(), byReferrerMap.mapKeys { it.key.toByteArray() }.mapValues { it.value.toByteArray() })
+                connection.keyCommands().expire(cacheKeys.byReferrerKey.toByteArray(), ttlSeconds)
             }
 
-            // Last Clicked At
             if (lastClickedAtStr != null) {
-                valueOps.set(cacheKeys.lastClickedAtKey, lastClickedAtStr)
-                redisTemplate.expire(cacheKeys.lastClickedAtKey, ttl)
+                connection.stringCommands().set(cacheKeys.lastClickedAtKey.toByteArray(), lastClickedAtStr.toByteArray())
+                connection.keyCommands().expire(cacheKeys.lastClickedAtKey.toByteArray(), ttlSeconds)
             }
 
-            // Dirty Set
-            setOps.add(cacheKeys.dirtySetKey, shortKey)
+            connection.setCommands().sAdd(cacheKeys.dirtySetKey.toByteArray(), shortKey.toByteArray())
 
-            null // 반환값 없음
+            null
         }
     }
 
     fun findTotalStatsInCache(shortKey: String): TotalStatsVo? {
         val cacheKeys = TotalStatsCacheKeys.from(shortKey)
-        val results = redisTemplate.executePipelined { _ ->
-            val valueOps = redisTemplate.opsForValue()
-            val hashOps = redisTemplate.opsForHash<String, String>()
-
-            valueOps.get(cacheKeys.totalClicksKey)
-            hashOps.entries(cacheKeys.byDateKey)
-            hashOps.entries(cacheKeys.byDeviceKey)
-            hashOps.entries(cacheKeys.byReferrerKey)
-            valueOps.get(cacheKeys.lastClickedAtKey)
+        val results = redisTemplate.executePipelined { connection ->
+            connection.stringCommands().get(cacheKeys.totalClicksKey.toByteArray())
+            connection.hashCommands().hGetAll(cacheKeys.byDateKey.toByteArray())
+            connection.hashCommands().hGetAll(cacheKeys.byDeviceKey.toByteArray())
+            connection.hashCommands().hGetAll(cacheKeys.byReferrerKey.toByteArray())
+            connection.stringCommands().get(cacheKeys.lastClickedAtKey.toByteArray())
             null
         }
         if (!(results.isNotEmpty() && results.size >= 5)) {
@@ -207,17 +196,15 @@ class TotalStatsRepository(
             return emptyList()
         }
         // 1. Redis Pipeline 실행 (결과는 플랫한 리스트로 반환됨)
-        val pipelineResults = redisTemplate.executePipelined { _ ->
-            val valueOps = redisTemplate.opsForValue()
-            val hashOps = redisTemplate.opsForHash<String, String>()
-
+        val pipelineResults = redisTemplate.executePipelined { connection ->
             shortKeyList.forEach { shortKey ->
                 val cacheKeys = TotalStatsCacheKeys.from(shortKey)
-                valueOps.get(cacheKeys.totalClicksKey)
-                hashOps.entries(cacheKeys.byDateKey)
-                hashOps.entries(cacheKeys.byDeviceKey)
-                hashOps.entries(cacheKeys.byReferrerKey)
-                valueOps.get(cacheKeys.lastClickedAtKey)
+
+                connection.stringCommands().get(cacheKeys.totalClicksKey.toByteArray())
+                connection.hashCommands().hGetAll(cacheKeys.byDateKey.toByteArray())
+                connection.hashCommands().hGetAll(cacheKeys.byDeviceKey.toByteArray())
+                connection.hashCommands().hGetAll(cacheKeys.byReferrerKey.toByteArray())
+                connection.stringCommands().get(cacheKeys.lastClickedAtKey.toByteArray())
             }
             null
         }
