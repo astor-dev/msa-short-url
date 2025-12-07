@@ -18,6 +18,7 @@ class ShortUrlEntity (
     @Column(nullable = false, unique = true)
     var shortKey: String,
     var baseUrl: String,
+    @Column(nullable = false, length = 2048)
     var originalUrl: String,
     var expiresAt: Instant,
     @CreationTimestamp

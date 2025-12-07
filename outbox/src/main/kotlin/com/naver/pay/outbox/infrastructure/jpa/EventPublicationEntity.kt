@@ -16,6 +16,7 @@ class EventPublicationEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
     val bindingName: String,
+    @Column(nullable = false, length = 2048)
     val message: String,
     val createdAt: Instant = Instant.now(),
     val publishedAt: Instant? = null,
