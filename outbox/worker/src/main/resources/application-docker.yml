@@ -13,11 +13,6 @@ spring:
   cloud:
     stream:
       bindings:
-        shortUrlClicked-out-0:
-          destination: short_url.clicked
-          content-type: application/json
-          producer:
-            partition-count: 3
         shortUrlCreated-out-0:
           destination: short_url.created
           content-type: application/json
@@ -28,13 +23,10 @@ spring:
         binder:
           brokers: broker-1:19092, broker-2:19092, broker-3:19092
           auto-create-topics: false
-          required-acks: 0
+          required-acks: -1
           configuration:
             key.serializer: org.apache.kafka.common.serialization.StringSerializer
         bindings:
-          shortUrlClicked-out-0:
-            producer:
-              sync: false
           shortUrlCreated-out-0:
             producer:
               sync: false
