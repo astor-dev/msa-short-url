@@ -16,6 +16,13 @@ spring:
     gateway:
       server:
         webflux:
+          default-filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@clientIdKeyResolver}"
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
           routes:
             - id: url-create
               uri: http://localhost:8081
@@ -30,6 +37,12 @@ spring:
               predicates:
                 - Path=/{shortKey}
               filters:
+                - name: RequestRateLimiter
+                  args:
+                      key-resolver: "#{@clientIdKeyResolver}"
+                      redis-rate-limiter.replenishRate: 20
+                      redis-rate-limiter.burstCapacity: 40
+                      redis-rate-limiter.requestedTokens: 1
                 - RewritePath=/(?<key>.*), /v1/urls/${key}
 
             - id: url-state
@@ -55,3 +68,4 @@ spring:
                 - Method=GET
               filters:
                 - RewritePath=/api/(?<segment>.*), /${segment}
+
