@@ -355,5 +355,47 @@ class TotalStatsServiceTest : BehaviorSpec({
             }
         }
     }
+
+    Given("save 메소드가 주어졌을 때") {
+        val shortKey = "testKey"
+        val metadata = ShortUrlMetadata(
+            shortUrl = "https://short.naver.com/testKey",
+            originalUrl = "https://naver.com",
+            shortUrlCreatedAt = Instant.now(),
+            shortUrlExpiredAt = Instant.now().plusSeconds(3600)
+        )
+        val totalStats = TotalStats(
+            shortKey = shortKey,
+            totalClicks = 100L,
+            byDate = listOf(
+                ShortUrlStatsByDate(date = "2024-01-01", clicks = 50L),
+                ShortUrlStatsByDate(date = "2024-01-02", clicks = 50L)
+            ),
+            byDevice = listOf(
+                ShortUrlStatsByDevice(deviceType = "mobile", clicks = 60L),
+                ShortUrlStatsByDevice(deviceType = "desktop", clicks = 40L)
+            ),
+            byReferrer = listOf(
+                ShortUrlStatsByReferrer(referrer = "referrer1", clicks = 70L),
+                ShortUrlStatsByReferrer(referrer = "referrer2", clicks = 30L)
+            ),
+            lastClickedAt = Instant.now(),
+            metadata = metadata
+        )
+
+        When("정상적으로 저장하는 경우") {
+            every {
+                totalStatsRepository.save(any<TotalStats>())
+            } returns Unit
+
+            totalStatsService.save(totalStats)
+
+            Then("Repository의 save를 호출해야 한다") {
+                verify(exactly = 1) {
+                    totalStatsRepository.save(totalStats)
+                }
+            }
+        }
+    }
 })
 

@@ -14,13 +14,13 @@ import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.ZSetOperations
 import org.springframework.data.redis.core.script.DefaultRedisScript
 import org.springframework.data.redis.core.script.RedisScript
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Repository
 import java.time.Duration
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Collections
 
-@Service
+@Repository
 class DailyTopStatsRepository(
     private val dailyTopUrlsRepository: DailyTopUrlsRepository,
     private val dailyTopReferrersRepository: DailyTopReferrersRepository,

@@ -446,5 +446,57 @@ class DailyTopStatsServiceTest : BehaviorSpec({
             }
         }
     }
+
+    Given("save 메소드가 주어졌을 때") {
+        val dateString = "2024-01-01"
+        val dailyTopStats = DailyTopStats(
+            date = dateString,
+            topUrls = listOf(
+                TopUrlInfo(
+                    rank = 1,
+                    shortKey = "key1",
+                    shortUrl = "https://short.naver.com/key1",
+                    originalUrl = "https://naver.com",
+                    totalClicks = 100L
+                )
+            ),
+            topReferrers = listOf(
+                TopReferrerInfo(
+                    rank = 1,
+                    referrer = "referrer1",
+                    totalClicks = 50L
+                )
+            ),
+            topByDevice = listOf(
+                TopByDeviceInfo(
+                    deviceType = "mobile",
+                    totalClicks = 80L,
+                    topUrls = listOf(
+                        TopUrlInfo(
+                            rank = 1,
+                            shortKey = "key1",
+                            shortUrl = "https://short.naver.com/key1",
+                            originalUrl = "https://naver.com",
+                            totalClicks = 80L
+                        )
+                    )
+                )
+            )
+        )
+
+        When("정상적으로 저장하는 경우") {
+            every {
+                dailyTopStatsRepository.save(any<DailyTopStats>())
+            } returns Unit
+
+            dailyTopStatsService.save(dailyTopStats)
+
+            Then("Repository의 save를 호출해야 한다") {
+                verify(exactly = 1) {
+                    dailyTopStatsRepository.save(dailyTopStats)
+                }
+            }
+        }
+    }
 })
 

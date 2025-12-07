@@ -1,6 +1,5 @@
 package com.naver.pay.config
 
-import com.naver.pay.shorturl.stats.DailyTopStatsRepository
 import com.naver.pay.shorturl.stats.DailyTopStatsService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.batch.core.Job
@@ -17,14 +16,12 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.transaction.PlatformTransactionManager
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @Configuration
 class DailyTopStatsSyncJobConfig(
     private val jobRepository: JobRepository,
     private val transactionManager: PlatformTransactionManager,
     private val shortUrlDailyTopStatsService: DailyTopStatsService,
-    private val shortUrlDailyTopStatsPersistenceService: DailyTopStatsRepository
 ) {
 
     private val logger = KotlinLogging.logger(DailyTopStatsSyncJobConfig::class.java.name)
@@ -60,7 +57,7 @@ class DailyTopStatsSyncJobConfig(
 
             listOf(yesterday, today).forEach { date ->
                 val dailyTopStats = shortUrlDailyTopStatsService.getOne(date, limit)
-                if (dailyTopStats.topUrls.isNotEmpty()) shortUrlDailyTopStatsPersistenceService.save(dailyTopStats)
+                if (dailyTopStats.topUrls.isNotEmpty()) shortUrlDailyTopStatsService.save(dailyTopStats)
                 logger.info { "${"Synced daily top stats for date={}, limit={}"} $date $limit" }
             }
 

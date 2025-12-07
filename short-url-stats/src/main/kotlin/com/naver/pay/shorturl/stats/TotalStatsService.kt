@@ -108,4 +108,13 @@ class TotalStatsService(
             metadata = document.metadata
         )
     }
+
+    /**
+     * TotalStats를 영속화합니다.
+     *
+     * @param totalStats 저장할 TotalStats
+     */
+    fun save(totalStats: TotalStats) {
+        totalStatsRepository.save(totalStats)
+    }
 }

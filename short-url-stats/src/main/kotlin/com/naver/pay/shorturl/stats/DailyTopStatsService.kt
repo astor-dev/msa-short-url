@@ -101,4 +101,13 @@ class DailyTopStatsService(
             topByDevice = topByDevice
         )
     }
+
+    /**
+     * 일 단위 Top N 통계를 영속화합니다.
+     *
+     * @param dailyTopStats 저장할 일 단위 Top N 통계
+     */
+    fun save(dailyTopStats: DailyTopStats) {
+        dailyTopStatsRepository.save(dailyTopStats)
+    }
 }
