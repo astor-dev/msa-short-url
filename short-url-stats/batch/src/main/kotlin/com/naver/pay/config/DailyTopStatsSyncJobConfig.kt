@@ -26,11 +26,6 @@ class DailyTopStatsSyncJobConfig(
 
     private val logger = KotlinLogging.logger(DailyTopStatsSyncJobConfig::class.java.name)
 
-    // TODO: 날짜별 격리 트랜잭션(Step 2개로 분리)
-    // TODO: Chunk 기반 전환
-    // TODO: Multi-thread Step 사용
-    // TODO: 중간 실패 시 재시작 Chunk 기반 Writer 적용
-    // TODO: Redis 데이터 읽을 때 Cursor Reader 도입
     @Bean
     fun dailyTopStatsSyncJob(dailyTopStatsSyncStep: Step): Job {
         return JobBuilder(JOB_NAME, jobRepository)

@@ -5,6 +5,8 @@ spring:
   batch:
     jdbc:
       initialize-schema: always
+    job:
+      name: dailyTopStatsSyncJob
   datasource:
     url: jdbc:mysql://localhost:3307/naverpay?serverTimezone=Asia/Seoul
     username: naverpay
