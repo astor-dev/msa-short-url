@@ -205,13 +205,16 @@ Short URL 서비스의 특성상 **짧은 길이**와 **충돌 방지**가 더 �
 
 **분산 락 (Redis)**: 
 - 원본 URL을 락 키로 사용하여 동일한 URL에 대한 동시 생성 요청을 방지합니다.
+- originalUrl 기반 유효성 검사 이후 쓰기 작업이 진행 중 일 때 다른 트랜잭션이 커밋되어 중복 생성 및 멱등성이 깨지는 것을 막기 위함입니다.
 - Critical section 내에서 캐시 확인, DB 조회, 생성 로직이 원자적으로 실행됩니다.
 
 #### 이벤트 발행
 
 **Outbox 패턴**:
 - 트랜잭션 내에서 `event_publication` 테이블에 이벤트를 저장합니다.
-- `outbox-polling-publisher`가 0.5초 주기로 폴링하여 Kafka로 발행합니다.
+- `outbox-worker`가 0.5초 주기로 폴링하여 Kafka로 발행합니다.
 - 트랜잭션 커밋과 이벤트 발행의 원자성을 보장하여 이벤트 손실을 방지합니다.
 
-
+**Stats Consumer**:
+- 통계 도메인에서 활용할 Document를 생성 이벤트 Payload 기반 비동기로 생성합니다.
+- `INSERT IF NOT EXISTS`를 통해 생성의 멱등성을 보장합니다.
