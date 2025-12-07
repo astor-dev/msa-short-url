@@ -37,7 +37,8 @@ docker compose -f docker-compose.services.yml up -d --build
 # Short URL Stats 도메인
 ./gradlew :short-url-stats:api:stats-service:bootrun
 ./gradlew :short-url-stats:consumer:bootrun
-./gradlew :short-url-stats:batch:bootrun
+java -jar short-url-stats/batch/build/libs/batch.jar --spring.profiles.active=total
+java -jar short-url-stats/batch/build/libs/batch.jar --spring.profiles.active=daily
 
 # Outbox
 ./gradlew :outbox:worker:bootrun
@@ -245,12 +246,28 @@ Short URL 리다이렉트는 **응답 시간 최우선**과 **캐시 최적화**
 **Stats Consumer**:
 - MongoDB 부하를 방지하기 위해 Redis를 우선 활용합니다.
 - **누적 통계**
-  - `INCR`로 Redis에 누적 클릭 수를 저장합니다.
+  - `INCR` / `HINCRBY`로 Redis에 누적 클릭 수를 저장합니다.
   - 누적 통계 미스 시 MongoDB에서 초기값을 조회하여 Redis에 세팅합니다.
+  - shortKey를 dirtySet에 저장합니다. 추후 배치에서 동기화할 url을 식별하는데 사용합니다. 
 - **일간 통계**
   - `ZINCRBY`로 Redis Sorted Set에 일별 클릭 수를 집계합니다.
   - Sorted Set을 활용하여 Top N 조회 성능을 최적화합니다.
 - **배치 동기화**
   - Redis에 저장된 통계 데이터를 배치 작업을 통해 MongoDB에 동기화합니다. (Write Back)
   - 실시간 집계는 Redis에서 수행하고, 영속화는 MongoDB에 비동기로 저장합니다.
-  - 이를 통해 MongoDB 쓰기 부하를 분산시킵니다.
+
+### 캐시 동기화 배치 작업
+
+캐시 동기화는 Redis를 중심으로 수집된 통계를 지연 반영(Write-Back) 방식으로 MongoDB에 저장하는 구조입니다. 실시간 경로의 가벼움과 최종 일관성 확보를 동시에 달성하는 것이 목적입니다.
+
+#### 1. 누적 집계 동기화
+![batch-total](docs/images/batch-total.png)
+
+- Redis dirtySet에 마킹된 shortKey만을 대상으로 합니다. 
+- `SPOP`을 사용하여 batch-size 단위로 처리하므로 메모리 및 I/O 부하를 제어할 수 있습니다.
+- Reader는 pop된 키들에 대해 Redis에서 누적 통계(`HGETALL` / `GET` 등)를 조회합니다.
+- Writer는 MongoDB에 `bulkWrite`로 반영합니다.
+
+#### 2. 일간 Top N 통계 집계 동기화
+![batch-daily](docs/images/batch-daily.png)
+Redis Sorted Set에 누적된 클릭 데이터를 기반으로 랭킹 문서를 생성하는 작업입니다. 실시간 경로에서 집계한 값을 그대로 활용하여 MongoDB에 일 단위 스냅샷을 저장합니다.
