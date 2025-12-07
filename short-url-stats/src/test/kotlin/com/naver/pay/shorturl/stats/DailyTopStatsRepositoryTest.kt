@@ -84,7 +84,6 @@ class DailyTopStatsRepositoryTest : BehaviorSpec({
                 deviceType = "mobile",
                 rank = 1,
                 shortKey = "key1",
-                totalClicks = 0L,
                 shortUrl = "https://short.naver.com/key1",
                 originalUrl = "https://naver.com",
                 clicksFromThisDevice = 80L,

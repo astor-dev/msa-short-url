@@ -15,7 +15,6 @@ data class DailyTopByDeviceUrlsDocument(
     val deviceType: String,
     val rank: Int,
     val shortKey: String,
-    val totalClicks: Long,
     val shortUrl: String,
     val originalUrl: String,
     val clicksFromThisDevice: Long,
@@ -33,7 +32,6 @@ data class DailyTopByDeviceUrlsDocument(
                 deviceType = deviceType,
                 rank = topUrlInfo.rank,
                 shortKey = topUrlInfo.shortKey,
-                totalClicks = 0L, // 전체 클릭 수는 별도로 관리되므로 0으로 설정
                 shortUrl = topUrlInfo.shortUrl,
                 originalUrl = topUrlInfo.originalUrl,
                 clicksFromThisDevice = topUrlInfo.totalClicks,
