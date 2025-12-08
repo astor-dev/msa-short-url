@@ -29,9 +29,9 @@ class ShortUrlRepository(
      * shortKey로 RedirectUrl 도메인 객체를 조회합니다.
      * 
      * 캐시에서 redirectUrl과 expiresAt을 조회하고, 없을 경우 DB에서 조회 후 캐시에 저장합니다.
-     * Cache Stampede 방지를 위해 Jitter(0~60분)를 추가하여 캐싱합니다.
-     * Thundering herd 방지를 위해 조회 로직에 분산락을 사용합니다.
-     * 
+     * 특정 키에 대한 Thundering herd 방지를 위해 조회 로직에 분산락을 사용합니다.
+     * 전체 키들에 대한 Thundering herd 방지를 위해 Jitter(0~60분)를 추가하여 캐싱합니다.
+     *
      * @param shortKey 조회할 ShortUrl의 shortKey
      * @param userAgent 사용자 에이전트 (이벤트 발행용)
      * @param referrer 리퍼러 (이벤트 발행용)
