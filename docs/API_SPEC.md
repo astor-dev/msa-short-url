@@ -50,7 +50,7 @@
   "shortUrl": "https://short.example.com/abc123",
   "originalUrl": "https://naver.com/long/url",
   "createdAt": "2025-01-15T10:30:00Z",
-  "expiredAt": "2025-02-14T10:30:00Z"
+  "expiresAt": "2025-02-14T10:30:00Z"
 }
 ```
 
@@ -113,7 +113,7 @@ Authorization: Bearer test-user-key
   "shortUrl": "https://short.example.com/abc123",
   "originalUrl": "...",
   "createdAt": "2025-01-15T10:30:00Z",
-  "expiredAt": "2025-02-14T10:30:00Z",
+  "expiresAt": "2025-02-14T10:30:00Z",
   "clickSummary": {
     "totalClicks": 12345,
     "lastClickedAt": "2025-01-20T09:15:00Z"
