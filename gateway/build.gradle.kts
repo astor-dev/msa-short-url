@@ -12,6 +12,7 @@ dependencies {
         exclude(group = "org.mockito")
     }
     implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webflux")
+    implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
     testImplementation("com.ninja-squad:springmockk:4.0.2")
