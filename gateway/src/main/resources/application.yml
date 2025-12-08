@@ -115,19 +115,19 @@ resilience4j:
         slowCallDurationThreshold: 500ms
         minimumNumberOfCalls: 20
         registerHealthIndicator: true
-        
+
       # 상태 조회 API 전용 설정
       state-circuit:
         slidingWindowType: COUNT_BASED
-        slidingWindowSize: 30
+        slidingWindowSize: 50
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
         permittedNumberOfCallsInHalfOpenState: 5
         slowCallRateThreshold: 60
-        slowCallDurationThreshold: 1000ms
-        minimumNumberOfCalls: 10
+        slowCallDurationThreshold: 500ms
+        minimumNumberOfCalls: 20
         registerHealthIndicator: true
-        
+
       # 통계 조회 API 전용 설정 (상세 통계, Top N 공통)
       statistics-circuit:
         slidingWindowType: COUNT_BASED
@@ -136,6 +136,6 @@ resilience4j:
         waitDurationInOpenState: 15s
         permittedNumberOfCallsInHalfOpenState: 3
         slowCallRateThreshold: 60
-        slowCallDurationThreshold: 2000ms
+        slowCallDurationThreshold: 1000ms
         minimumNumberOfCalls: 5
         registerHealthIndicator: true
