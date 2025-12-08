@@ -1,4 +1,4 @@
-package com.naver.pay.outbox.infrastructure.jpa
+package com.naver.pay.outbox.jpa
 
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying

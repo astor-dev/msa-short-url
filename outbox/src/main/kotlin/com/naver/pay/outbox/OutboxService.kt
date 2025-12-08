@@ -1,8 +1,8 @@
 package com.naver.pay.outbox
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.naver.pay.outbox.infrastructure.jpa.EventPublicationEntity
-import com.naver.pay.outbox.infrastructure.jpa.EventPublicationRepository
+import com.naver.pay.outbox.jpa.EventPublicationEntity
+import com.naver.pay.outbox.jpa.EventPublicationRepository
 import org.springframework.stereotype.Service
 import java.time.Instant
 
