@@ -132,14 +132,14 @@ Short URL 통계 집계 및 조회를 담당하는 도메인입니다.
 
 | 도메인                 | 기능                                                                      |
 |---------------------|-------------------------------------------------------------------------|
-| **total-stats**     | Short URL 누적 통계 집계 및 조회 - MongoDB 상세 저장, 원자적 연산                         |
+| **total-stats**     | Short URL 누적 통계 집계 및 조회 - Redis Hash 실시간 집계, 원자적 연산, MongoDB에 영속화       |
 | **daily-top-stats** | Short URL 일간 통계 집계 및 조회 - Redis Sorted Set 실시간 집계, 원자적 연산, MongoDB에 영속화 |
 
-| 모듈                        | 포트 | 주요 기능 | 기술 스택                                     |
-|---------------------------|------|----------|-------------------------------------------|
-| **stats-service**         | 8083 | 통계 조회 API (상태/상세/Top N)               | Spring Boot Web, MongoDB, Redis           |
+| 모듈                        | 포트 | 주요 기능                               | 기술 스택                                     |
+|---------------------------|------|-------------------------------------|-------------------------------------------|
+| **stats-service**         | 8083 | 통계 조회 API (상태/상세/Top N)             | Spring Boot Web, MongoDB, Redis           |
 | **consumer**              | 8091 | Kafka 이벤트 소비, 통계 집계 (MongoDB/Redis) | Spring Boot, MongoDB, Redis, Spring Cloud Stream |
-| **batch**                 | 8092 | 일별 Top N 통계 배치 집계 및 영속화 | Spring Boot, Spring Batch, MongoDB, Redis |
+| **batch**                 | 8092 | 누적/일간 통계 배치 집계 및 영속화                | Spring Boot, Spring Batch, MongoDB, Redis |
 
 ### 인프라 모듈
 
