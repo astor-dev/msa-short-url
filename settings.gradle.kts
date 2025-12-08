@@ -17,3 +17,5 @@ include("short-url-stats:api:stats-service")
 include("util")
 include("util:object-mapper")
 include("util:distributed-lock")
+
+include("traffic-generator")
