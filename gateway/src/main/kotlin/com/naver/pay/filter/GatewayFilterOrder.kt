@@ -5,5 +5,5 @@ object GatewayFilterOrder {
     const val RATE_LIMITING = -200
     const val AUTHENTICATION = -100
     const val AUTHORIZATION = -90
-    const val LOGGING = 1000
+    const val CIRCUIT_BREAKER = -80
 }

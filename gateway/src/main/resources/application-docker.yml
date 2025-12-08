@@ -23,6 +23,10 @@ spring:
                 - Path=/api/v1/urls
                 - Method=POST
               filters:
+                - name: OrderedCircuitBreaker
+                  args:
+                    name: create-circuit
+                    fallbackUri: forward:/fallback/create
                 - RewritePath=/api/(?<segment>.*), /${segment}
 
             - id: url-redirect
@@ -30,6 +34,10 @@ spring:
               predicates:
                 - Path=/{shortKey}
               filters:
+                - name: OrderedCircuitBreaker
+                  args:
+                    name: redirect-circuit
+                    fallbackUri: forward:/fallback/redirect
                 - RewritePath=/(?<key>.*), /v1/urls/${key}
 
             - id: url-state
@@ -38,6 +46,10 @@ spring:
                 - Path=/api/v1/urls/{shortKey}
                 - Method=GET
               filters:
+                - name: OrderedCircuitBreaker
+                  args:
+                    name: state-circuit
+                    fallbackUri: forward:/fallback/state
                 - RewritePath=/api/(?<segment>.*), /${segment}
 
             - id: url-statistics
@@ -46,6 +58,10 @@ spring:
                 - Path=/api/v1/urls/{shortKey}/statistics
                 - Method=GET
               filters:
+                - name: OrderedCircuitBreaker
+                  args:
+                    name: statistics-circuit
+                    fallbackUri: forward:/fallback/statistics
                 - RewritePath=/api/(?<segment>.*), /${segment}
 
             - id: top-statistics
@@ -54,4 +70,59 @@ spring:
                 - Path=/api/v1/statistics/top
                 - Method=GET
               filters:
+                - name: OrderedCircuitBreaker
+                  args:
+                    name: statistics-circuit
+                    fallbackUri: forward:/fallback/statistics
                 - RewritePath=/api/(?<segment>.*), /${segment}
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      # 리다이렉트 API 전용 설정
+      redirect-circuit:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+        failureRateThreshold: 30
+        waitDurationInOpenState: 5s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 100ms
+        minimumNumberOfCalls: 10
+        registerHealthIndicator: true
+        
+      # 생성 API 전용 설정
+      create-circuit:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 50
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 5
+        slowCallRateThreshold: 60
+        slowCallDurationThreshold: 500ms
+        minimumNumberOfCalls: 20
+        registerHealthIndicator: true
+        
+      # 상태 조회 API 전용 설정
+      state-circuit:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 30
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 5
+        slowCallRateThreshold: 60
+        slowCallDurationThreshold: 1000ms
+        minimumNumberOfCalls: 10
+        registerHealthIndicator: true
+        
+      # 통계 조회 API 전용 설정 (상세 통계, Top N 공통)
+      statistics-circuit:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+        failureRateThreshold: 50
+        waitDurationInOpenState: 15s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slowCallRateThreshold: 60
+        slowCallDurationThreshold: 2000ms
+        minimumNumberOfCalls: 5
+        registerHealthIndicator: true
