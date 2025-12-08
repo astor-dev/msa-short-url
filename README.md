@@ -123,7 +123,7 @@ Short URL 생성 및 리다이렉트를 담당하는 핵심 도메인입니다.
 
 | 모듈 | 포트 | 주요 기능                                 | 기술 스택                                            |
 |------|------|---------------------------------------|--------------------------------------------------|
-| **url-service** | 8081 | Short URL 생성, 중복 방지, 동시 진입 방지, 멱등성 보장 | Spring Boot Web, Redis, JPA, Spring Cloud Stream |
+| **url-service** | 8081 | Short URL 생성, 중복 방지, 동시 진입 방지, 멱등성 보장 | Spring Boot Web, JPA, Redis, Spring Cloud Stream |
 | **redirect-service** | 8082 | 리다이렉트 처리, 캐시 기반 조회                    | Spring Boot Web, JPA, Redis, Spring Cloud Stream |
 
 #### 2. short-url-stats 도메인
@@ -135,11 +135,11 @@ Short URL 통계 집계 및 조회를 담당하는 도메인입니다.
 | **total-stats**     | Short URL 누적 통계 집계 및 조회 - MongoDB 상세 저장, 원자적 연산                         |
 | **daily-top-stats** | Short URL 일간 통계 집계 및 조회 - Redis Sorted Set 실시간 집계, 원자적 연산, MongoDB에 영속화 |
 
-| 모듈                        | 포트 | 주요 기능 | 기술 스택                                          |
-|---------------------------|------|----------|------------------------------------------------|
-| **stats-service**         | 8083 | 통계 조회 API (상태/상세/Top N)               | Spring Boot Web, MongoDB, Redis                |
-| **consumer**              | 8091 | Kafka 이벤트 소비, 통계 집계 (MongoDB/Redis) | Spring Boot, Spring Cloud Stream, MongoDB, Redis |
-| **batch**                 | 8092 | 일별 Top N 통계 배치 집계 및 영속화 | Spring Boot, Spring Batch, MongoDB, Redis   |
+| 모듈                        | 포트 | 주요 기능 | 기술 스택                                     |
+|---------------------------|------|----------|-------------------------------------------|
+| **stats-service**         | 8083 | 통계 조회 API (상태/상세/Top N)               | Spring Boot Web, MongoDB, Redis           |
+| **consumer**              | 8091 | Kafka 이벤트 소비, 통계 집계 (MongoDB/Redis) | Spring Boot, MongoDB, Redis, Spring Cloud Stream |
+| **batch**                 | 8092 | 일별 Top N 통계 배치 집계 및 영속화 | Spring Boot, Spring Batch, MongoDB, Redis |
 
 ### 인프라 모듈
 
@@ -159,9 +159,9 @@ Short URL 통계 집계 및 조회를 담당하는 도메인입니다.
 |------|-----------------------------------------------------------|
 | **outbox** | Outbox 패턴 구현에 필요한 기능 모듈 - 트랜잭션과 이벤트 발행 일관성 보장, `FOR UPDATE SKIP LOCKED` 분산 환경 지원    |
 
-| 모듈 | 포트 | 주요 기능 | 기술 스택                                            |
-|------|------|----------|--------------------------------------------------|
-| **worker** | 8090 | Outbox 패턴 구현, 이벤트 발행 (0.5초 주기, 배치 50건) | Spring Boot, Spring Cloud Stream, JPA            |
+| 모듈 | 포트 | 주요 기능 | 기술 스택                                 |
+|------|------|----------|---------------------------------------|
+| **worker** | 8090 | Outbox 패턴 구현, 이벤트 발행 (0.5초 주기, 배치 50건) | Spring Boot, JPA, Spring Cloud Stream |
 
 #### 3. util 모듈
 
