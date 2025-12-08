@@ -52,4 +52,26 @@ object ErrorResponseUtil {
         val buffer = response.bufferFactory().wrap(body.toByteArray())
         return response.writeWith(Mono.just(buffer))
     }
+
+    fun createServiceUnavailableResponse(
+        exchange: ServerWebExchange,
+        message: String,
+        path: String
+    ): Mono<Void> {
+        val response: ServerHttpResponse = exchange.response
+        response.statusCode = HttpStatus.SERVICE_UNAVAILABLE
+        response.headers.add("Content-Type", "application/json")
+
+        val errorResponse = ErrorResponse(
+            timestamp = System.currentTimeMillis().toString(),
+            status = HttpStatus.SERVICE_UNAVAILABLE,
+            error = "Service Unavailable",
+            message = message,
+            path = path
+        )
+
+        val body = objectMapper.writeValueAsString(errorResponse)
+        val buffer = response.bufferFactory().wrap(body.toByteArray())
+        return response.writeWith(Mono.just(buffer))
+    }
 }
