@@ -1,0 +1,31 @@
+{
+  "scenario": "REDIRECT",
+  "duration": 60,
+  "config": {
+    "baseUrl": "http://localhost:8080",
+    "threads": 10,
+    "count": null,
+    "durationSeconds": 60,
+    "requestIntervalMs": 86,
+    "timeoutSeconds": 30,
+    "userAuthToken": "test-user-key",
+    "adminAuthToken": "test-admin-key",
+    "userAgent": "TrafficGenerator/1.0",
+    "referer": null
+  },
+  "totalRequests": 5930,
+  "successfulRequests": 5930,
+  "failedRequests": 0,
+  "responseTime": {
+    "average": 11,
+    "p50": 10,
+    "p95": 22,
+    "p99": 71,
+    "min": 2,
+    "max": 202
+  },
+  "errorBreakdown": {
+
+  },
+  "firstErrorElapsedTime": null
+}
