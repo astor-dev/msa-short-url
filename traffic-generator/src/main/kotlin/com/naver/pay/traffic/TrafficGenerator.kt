@@ -13,10 +13,10 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.system.measureTimeMillis
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 private val logger = KotlinLogging.logger {}
-
-private val TEST_SHORT_KEYS = listOf("MQ", "Mg", "Mw", "NA", "NQ", "Ng")
 
 fun main() = runBlocking {
     TrafficGenerator().run()
@@ -233,6 +233,32 @@ class TrafficGenerator {
         // 시나리오별 추가 설정 확인
         val currentConfig = config
 
+        // 테스트 데이터 생성이 필요한 시나리오인지 확인
+        val needsTestData = selectedScenario in listOf(
+            ScenarioType.REDIRECT,
+            ScenarioType.STATE,
+            ScenarioType.STATISTICS
+        )
+
+        // 테스트 데이터 생성 (메트릭 집계 전)
+        val testShortKeys = if (needsTestData) {
+            val testDataCount = promptInt("테스트 데이터 수를 입력하세요 (최소 1개)", 10) { it > 0 }
+            println()
+            println("테스트 데이터 생성 중... (${testDataCount}개)")
+            generateTestData(currentConfig, testDataCount)
+        } else {
+            emptyList()
+        }
+
+        if (needsTestData && testShortKeys.isEmpty()) {
+            println("경고: 테스트 데이터 생성에 실패했습니다. 계속 진행하시겠습니까?")
+            val continueAnyway = promptYesNo("계속 진행", false)
+            if (!continueAnyway) {
+                println("취소되었습니다.")
+                return
+            }
+        }
+
         // 설정 요약 출력
         println()
         println("═══════════════════════════════════════════════════════════")
@@ -249,7 +275,9 @@ class TrafficGenerator {
         println("  타임아웃: ${currentConfig.timeoutSeconds}초")
         println("  사용자 토큰: ${currentConfig.userAuthToken}")
         println("  관리자 토큰: ${currentConfig.adminAuthToken}")
-        // Short key file is no longer hardcoded
+        if (needsTestData) {
+            println("  테스트 데이터 수: ${testShortKeys.size}개")
+        }
         println("═══════════════════════════════════════════════════════════")
         println()
 
@@ -302,16 +330,22 @@ class TrafficGenerator {
                                     when (selectedScenario) {
                                         ScenarioType.CREATE -> trafficApiClient.createShortUrl()
                                         ScenarioType.REDIRECT -> {
-                                            val shortKey = TEST_SHORT_KEYS[keyIndex.getAndIncrement() % TEST_SHORT_KEYS.size]
+                                            if (testShortKeys.isNotEmpty()) {
+                                                val shortKey = testShortKeys[keyIndex.getAndIncrement() % testShortKeys.size]
                                             trafficApiClient.checkRedirect(shortKey)
+                                            }
                                         }
                                         ScenarioType.STATE -> {
-                                            val shortKey = TEST_SHORT_KEYS[keyIndex.getAndIncrement() % TEST_SHORT_KEYS.size]
+                                            if (testShortKeys.isNotEmpty()) {
+                                                val shortKey = testShortKeys[keyIndex.getAndIncrement() % testShortKeys.size]
                                             trafficApiClient.getUrlState(shortKey)
+                                            }
                                         }
                                         ScenarioType.STATISTICS -> {
-                                            val shortKey = TEST_SHORT_KEYS[keyIndex.getAndIncrement() % TEST_SHORT_KEYS.size]
+                                            if (testShortKeys.isNotEmpty()) {
+                                                val shortKey = testShortKeys[keyIndex.getAndIncrement() % testShortKeys.size]
                                             trafficApiClient.getDetailStatistics(shortKey)
+                                            }
                                         }
                                         ScenarioType.TOP_N -> trafficApiClient.getTopNStatistics()
                                     }
@@ -335,6 +369,62 @@ class TrafficGenerator {
         val finalMetrics = metricsCollector.getMetrics()
         reportGenerator.generateReport(finalMetrics, totalExecutionTime.toDuration(DurationUnit.MILLISECONDS), currentConfig)
         metricsCollector.reset() // Reset metrics for next run
+    }
+
+    private suspend fun generateTestData(config: GeneratorConfig, count: Int): List<String> {
+        val shortKeys = mutableListOf<String>()
+        val dummyMetricsCollector = MetricsCollector() // 메트릭 수집하지 않는 더미 컬렉터
+        val testDataClient = TrafficApiClient(
+            config = config,
+            metricsCollector = dummyMetricsCollector,
+            enableRedirects = false
+        )
+
+        try {
+            val mutex = Mutex()
+            val generatedKeys = mutableListOf<String>()
+            val successCount = AtomicInteger(0)
+
+            coroutineScope {
+                val jobs = mutableListOf<Job>()
+                val threadsCount = count.coerceAtMost(20) // 최대 20개 스레드로 생성
+
+                // 병렬로 테스트 데이터 생성
+                repeat(threadsCount) { threadId ->
+                    jobs.add(
+                        launch(Dispatchers.IO) {
+                            val itemsPerThread = (count / threadsCount) + if (threadId < count % threadsCount) 1 else 0
+                            repeat(itemsPerThread) {
+                                try {
+                                    val response = testDataClient.createShortUrl()
+                                    response?.shortKey?.let { key ->
+                                        mutex.withLock {
+                                            generatedKeys.add(key)
+                                        }
+                                        successCount.incrementAndGet()
+                                        print(".")
+                                        System.out.flush()
+                                    }
+                                } catch (e: Exception) {
+                                    logger.debug(e) { "Failed to generate test data" }
+                                }
+                            }
+                        }
+                    )
+                }
+                jobs.joinAll()
+            }
+
+            shortKeys.addAll(generatedKeys)
+            println()
+            println("테스트 데이터 생성 완료: ${shortKeys.size}개 / ${count}개")
+        } catch (e: Exception) {
+            logger.error(e) { "Error generating test data" }
+        } finally {
+            testDataClient.close()
+        }
+
+        return shortKeys
     }
 
     suspend fun run() {
