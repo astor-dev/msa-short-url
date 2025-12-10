@@ -113,7 +113,7 @@ class ApiKeyAuthenticationFilter(
      */
     private fun findClientInfo(apiKey: String, clientId: String): Mono<ClientInfo> {
         val hashedKey = hmacSha256(apiKey, hmacProperties)
-        val cacheKey = "${CacheNames.CLIENT_INFO}::$hashedKey"
+        val cacheKey = "${CacheNames.CLIENT_INFO}::{$hashedKey}"
         
         // 1. Redis 캐시에서 조회
         return redisTemplate.opsForValue()

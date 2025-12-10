@@ -16,7 +16,7 @@ class DistributedLockExecutor(
         timeUnit: TimeUnit = TimeUnit.SECONDS,
         block: () -> T
     ): T {
-        val rLock = redissonClient.getLock("LOCK::$lockName::$key")
+        val rLock = redissonClient.getLock("LOCK::$lockName::{$key}")
         val available = rLock.tryLock(waitTime, leaseTime, timeUnit)
         if (!available) {
             throw RuntimeException("Lock 획득 실패: $lockName")

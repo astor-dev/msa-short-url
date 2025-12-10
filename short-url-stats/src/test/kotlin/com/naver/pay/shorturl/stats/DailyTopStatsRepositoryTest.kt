@@ -277,10 +277,10 @@ class DailyTopStatsRepositoryTest : BehaviorSpec({
     Given("findDailyStatsInCache 메소드가 주어졌을 때") {
         val dateKey = "2024-01-01"
         val limit = 10L
-        val urlKey = "${CacheNames.DAILY_TOP_URLS}::$dateKey"
-        val referrerKey = "${CacheNames.DAILY_TOP_REFERRERS}::$dateKey"
-        val deviceParentKey = "${CacheNames.DAILY_TOP_DEVICES}::$dateKey"
-        val deviceChildKey = "${CacheNames.DAILY_TOP_DEVICES}::$dateKey::${CacheNames.INFIX_DAILY_TOP_URLS}::mobile"
+        val urlKey = "${CacheNames.DAILY_TOP_URLS}::{$dateKey}"
+        val referrerKey = "${CacheNames.DAILY_TOP_REFERRERS}::{$dateKey}"
+        val deviceParentKey = "${CacheNames.DAILY_TOP_DEVICES}::{$dateKey}"
+        val deviceChildKey = "${CacheNames.DAILY_TOP_DEVICES}::{$dateKey}::${CacheNames.INFIX_DAILY_TOP_URLS}::{mobile}"
 
         When("캐시에 데이터가 존재하는 경우") {
             val urlTuple = mockk<ZSetOperations.TypedTuple<String>> {

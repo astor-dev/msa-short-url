@@ -52,8 +52,8 @@ class ShortUrlRepositoryTest: BehaviorSpec ({
         val referrer = "test-referrer"
         val now = Instant.now().truncatedTo(ChronoUnit.SECONDS)
         val expiresAt = now.plusSeconds(86400)
-        val redirectUrlCacheKey = "${CacheNames.REDIRECT_URL_BY_SHORT_KEY}::$shortKey"
-        val expiresAtCacheKey = "${CacheNames.EXPIRES_AT_BY_SHORT_KEY}::$shortKey"
+        val redirectUrlCacheKey = "${CacheNames.REDIRECT_URL_BY_SHORT_KEY}::{$shortKey}"
+        val expiresAtCacheKey = "${CacheNames.EXPIRES_AT_BY_SHORT_KEY}::{$shortKey}"
         val shortUrlEntity = ShortUrlEntity(
             id = 1L,
             shortKey = shortKey,

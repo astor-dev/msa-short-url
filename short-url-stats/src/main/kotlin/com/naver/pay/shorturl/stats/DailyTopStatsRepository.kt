@@ -141,10 +141,10 @@ class DailyTopStatsRepository(
         device: String
     ) {
         val dateKey = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")).toString()
-        val urlKey = "${CacheNames.DAILY_TOP_URLS}::$dateKey"
-        val referrerKey = "${CacheNames.DAILY_TOP_REFERRERS}::$dateKey"
-        val deviceParentKey = "${CacheNames.DAILY_TOP_DEVICES}::$dateKey"
-        val deviceChildKey = "${CacheNames.DAILY_TOP_DEVICES}::$dateKey::${CacheNames.INFIX_DAILY_TOP_URLS}::$device"
+        val urlKey = "${CacheNames.DAILY_TOP_URLS}::{$dateKey}"
+        val referrerKey = "${CacheNames.DAILY_TOP_REFERRERS}::{$dateKey}"
+        val deviceParentKey = "${CacheNames.DAILY_TOP_DEVICES}::{$dateKey}"
+        val deviceChildKey = "${CacheNames.DAILY_TOP_DEVICES}::{$dateKey}::${CacheNames.INFIX_DAILY_TOP_URLS}::{$device}"
 
         val keys = listOf(urlKey, referrerKey, deviceParentKey, deviceChildKey)
         val args = arrayOf(shortKey, referrer, device, ttlSeconds.toString())
@@ -164,18 +164,18 @@ class DailyTopStatsRepository(
      * @return DailyStatsVo, 조회된 데이터가 없으면 null
      */
     fun findDailyStatsInCache(dateKey: String, limit: Long): DailyStatsVo? {
-        val urlKey = "${CacheNames.DAILY_TOP_URLS}::$dateKey"
+        val urlKey = "${CacheNames.DAILY_TOP_URLS}::{$dateKey}"
         if(!redisTemplate.hasKey(urlKey)) return null
         val topUrls = getTopRank(urlKey, limit).mapNotNull { toKeyCount(it) }
-        val referrerKey = "${CacheNames.DAILY_TOP_REFERRERS}::$dateKey"
+        val referrerKey = "${CacheNames.DAILY_TOP_REFERRERS}::{$dateKey}"
         val topReferrers = getTopRank(referrerKey, limit).mapNotNull { toKeyCount(it) }
-        val deviceParentKey = "${CacheNames.DAILY_TOP_DEVICES}::$dateKey"
+        val deviceParentKey = "${CacheNames.DAILY_TOP_DEVICES}::{$dateKey}"
         val deviceParentTuples = getTopRank(deviceParentKey, -1)
 
         // Parent에서 얻은 device 목록을 순회하며 Child Key 조회
         val topByDevice = deviceParentTuples.map { parentTuple ->
             val deviceType = parentTuple.value ?: "Unknown"
-            val childKey = "${CacheNames.DAILY_TOP_DEVICES}::$dateKey::${CacheNames.INFIX_DAILY_TOP_URLS}::$deviceType"
+            val childKey = "${CacheNames.DAILY_TOP_DEVICES}::{$dateKey}::${CacheNames.INFIX_DAILY_TOP_URLS}::{$deviceType}"
             val childUrls = getTopRank(childKey, limit).mapNotNull { toKeyCount(it) }
             DeviceStatsVo(
                 deviceType = deviceType,

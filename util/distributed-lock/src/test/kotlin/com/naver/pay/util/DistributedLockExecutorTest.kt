@@ -20,7 +20,7 @@ class DistributedLockExecutorTest : BehaviorSpec({
 
     val lockName = "testLock"
     val key = "testKey"
-    val lockKey = "LOCK::$lockName::$key"
+    val lockKey = "LOCK::$lockName::{$key}"
 
     beforeTest {
         every { redissonClient.getLock(lockKey) } returns rLock

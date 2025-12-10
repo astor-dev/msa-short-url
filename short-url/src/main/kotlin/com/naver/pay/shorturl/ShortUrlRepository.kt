@@ -86,7 +86,7 @@ class ShortUrlRepository(
      * @return 캐시된 redirectUrl, 없으면 null
      */
     private fun findRedirectUrlInCache(shortKey: String): String? {
-        val cacheKey = "${CacheNames.REDIRECT_URL_BY_SHORT_KEY}::$shortKey"
+        val cacheKey = "${CacheNames.REDIRECT_URL_BY_SHORT_KEY}::{$shortKey}"
         return redisTemplate.opsForValue().get(cacheKey)
     }
 
@@ -97,7 +97,7 @@ class ShortUrlRepository(
      * @return 캐시된 expiresAt, 없으면 null
      */
     private fun findExpiresAtInCache(shortKey: String): Instant? {
-        val cacheKey = "${CacheNames.EXPIRES_AT_BY_SHORT_KEY}::$shortKey"
+        val cacheKey = "${CacheNames.EXPIRES_AT_BY_SHORT_KEY}::{$shortKey}"
         val expiresAtString = redisTemplate.opsForValue().get(cacheKey)
         return expiresAtString?.let { Instant.parse(it) }
     }
@@ -111,8 +111,8 @@ class ShortUrlRepository(
      * @param ttl 캐시 TTL
      */
     private fun cacheRedirectUrlAndExpiresAt(shortKey: String, redirectUrl: String, expiresAt: Instant, ttl: Duration) {
-        val redirectUrlCacheKey = "${CacheNames.REDIRECT_URL_BY_SHORT_KEY}::$shortKey"
-        val expiresAtCacheKey = "${CacheNames.EXPIRES_AT_BY_SHORT_KEY}::$shortKey"
+        val redirectUrlCacheKey = "${CacheNames.REDIRECT_URL_BY_SHORT_KEY}::{$shortKey}"
+        val expiresAtCacheKey = "${CacheNames.EXPIRES_AT_BY_SHORT_KEY}::{$shortKey}"
         redisTemplate.opsForValue().set(redirectUrlCacheKey, redirectUrl, ttl)
         redisTemplate.opsForValue().set(expiresAtCacheKey, expiresAt.toString(), ttl)
     }
