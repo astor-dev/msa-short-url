@@ -38,7 +38,7 @@ class TrafficGenerator {
         threads = 10,
         count = 100,
         durationSeconds = null,
-        requestIntervalMs = 0L,
+        requestIntervalMs = 100L,
         timeoutSeconds = 30L,
         userAuthToken = "test-user-key",
         adminAuthToken = "test-admin-key",
